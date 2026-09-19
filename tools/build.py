@@ -11,7 +11,7 @@ SRC = RADICE / "src"
 TOOLS = RADICE / "tools"
 DIST = RADICE / "dist"
 
-VERSIONE = "0.2.0"
+VERSIONE = "1.0.0"
 
 REPO = "https://github.com/sam-seriameta/Q.I.Z"
 
