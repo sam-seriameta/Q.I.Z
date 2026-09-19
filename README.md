@@ -59,6 +59,12 @@ python3 tools/build.py
 
 MIT: fai quello che vuoi, anche usarlo per lavoro. Il carattere incorporato è
 DejaVu, ridistribuibile.
+I suoni di fine round Arcade, Sax, Steel drum, Pizzicato e Colpo di scena
+vengono dai Music Jingles di [Kenney](https://kenney.nl), in pubblico dominio (CC0).
+Buzzer TV, Ding ding e Conto alla rovescia sono sintetizzati da
+`tools/suoni/sintetizza.sh`. Il Gong è un colpo tagliato dalla registrazione
+[Chinese Gong](https://commons.wikimedia.org/wiki/File:240382_the-very-real-horst_chinese-gong-finish-session-2014-06-10-29-143.wav)
+di the_very_Real_Horst, in pubblico dominio (CC0).
 
 ---
 

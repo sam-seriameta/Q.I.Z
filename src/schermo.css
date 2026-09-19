@@ -15,6 +15,10 @@
   --maiuscolo:none;
 }
 
+/* ---------- immagine di sfondo, con un velo del colore di sfondo sopra ---------- */
+.fondo-img{position:absolute;inset:0;background:center/cover no-repeat}
+.fondo-img::after{content:"";position:absolute;inset:0;background:var(--sfondo,#F4F2EE);opacity:var(--velo,0)}
+
 /* ---------- onde ---------- */
 .onde{position:absolute;left:0;width:100%;height:var(--altezzaOnde,170px);pointer-events:none}
 .onde-su{top:0}
@@ -79,7 +83,7 @@
   display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
 .parola span{display:block;max-width:100%;line-height:1.04;
   overflow-wrap:break-word;hyphens:none;text-transform:var(--maiuscolo,none)}
-.parola.risposta span{color:var(--squadra)}
+.parola.risposta span{color:var(--risposta,var(--squadra))}
 .parola.vuota span{opacity:.45}
 
 .chip-tempo{position:absolute;font-size:calc(104px * var(--scalaTimer,1));line-height:1;
@@ -104,6 +108,16 @@
   .schermo.finito .orologio-grande,.schermo.finito .chip-tempo{animation:batti .8s steps(2,end) infinite}
 }
 @keyframes batti{50%{opacity:.2}}
+
+/* ---------- entrata delle parole ---------- */
+@media (prefers-reduced-motion:no-preference){
+  .schermo[data-transizione=dissolvenza] .parola span.entra{animation:entraDissolvenza .4s ease-out}
+  .schermo[data-transizione=scorrimento] .parola span.entra{animation:entraScorrimento .45s cubic-bezier(.2,.8,.2,1)}
+  .schermo[data-transizione=pop] .parola span.entra{animation:entraPop .35s cubic-bezier(.3,1.5,.5,1)}
+}
+@keyframes entraDissolvenza{from{opacity:0}}
+@keyframes entraScorrimento{from{opacity:0;transform:translateY(80px)}}
+@keyframes entraPop{from{opacity:0;transform:scale(.7)}}
 
 /* ---------- firma dei realizzatori, sempre presente ---------- */
 .credito{position:absolute;left:62px;display:flex;align-items:center;gap:12px;

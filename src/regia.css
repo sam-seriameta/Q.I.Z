@@ -85,6 +85,26 @@ button.aggiungi:hover{border-color:var(--acc);color:var(--testo)}
 .gruppo .corpo{padding-top:0}
 
 /* ---------- squadre e aspetto ---------- */
+.temi{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.temi button{display:flex;flex-direction:column;padding:0;overflow:hidden;background:var(--campo);
+  border:2px solid var(--riga)}
+.temi button:hover{border-color:var(--acc);background:var(--campo)}
+.temi .mini{position:relative;height:56px;display:flex;align-items:center;justify-content:center;
+  font:700 20px/1 system-ui}
+.temi .mini::before{content:"";position:absolute;left:0;right:0;top:0;height:12px;
+  background:linear-gradient(90deg,var(--a),var(--b))}
+.temi .mini.piatto::before{display:none}
+.temi .nome{padding:8px 4px;font-size:12px}
+.riga-squadra .nota{margin:0;white-space:nowrap}
+.ripr{position:relative}
+.ripr > .ripristina{position:absolute;right:0;top:-5px;padding:4px 8px;font-size:15px;background:none;color:var(--acc)}
+.ripr > .ripristina:hover{background:var(--riga)}
+.ripr > .riga-squadra ~ .ripristina{top:6px}
+.ripr > .bottoni ~ .ripristina{top:2px}
+.ripr > .spunta ~ .ripristina{top:-4px}
+.scheda > .ripr:last-child > :first-child{margin-bottom:0}
+.rigaTema{align-items:center;justify-content:space-between;margin-top:4px}
+.rigaTema .nota{margin:0}
 .riga-squadra{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .riga-squadra input[type=text]{flex:1}
 .tavolozza{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px 48px}

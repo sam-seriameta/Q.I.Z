@@ -113,17 +113,114 @@ function aggiorna(){ tappoSporco = true; dipingi(); segnaModifica(); }
 
 /* ---------------- pannello aspetto ---------------- */
 
+/* ↺ accanto a un'impostazione: la riporta all'ultimo salvataggio, o all'originale se non si è mai salvato */
+function ripristinabile(elemento, obj, chiavi, rif){
+  chiavi = [].concat(chiavi);
+  const uguale = () => chiavi.every(k => JSON.stringify(obj[k]) === JSON.stringify(rif[k]));
+  const b = el("button", {className:"ripristina", textContent:"↺",
+    title: salvata ? tr("Torna all'ultimo salvataggio") : tr("Torna all'originale")});
+  b.hidden = uguale();
+  b.onclick = e => {
+    e.preventDefault(); e.stopPropagation();
+    chiavi.forEach(k => { obj[k] = structuredClone(rif[k]); });
+    suoniValidi(); cambioTema();
+  };
+  const d = el("div", {className:"ripr"}, elemento, b);
+  d.addEventListener("input", () => { b.hidden = uguale(); });
+  d.addEventListener("change", () => { b.hidden = uguale(); });
+  return d;
+}
+
+function cambioTema(){
+  tappoSporco = fontSporco = true;
+  riadattaTutti(); segnaModifica(); disegnaTema(); disegnaGiochi();
+}
+
 function disegnaTema(){
-  const t = cfg.tema;
+  const gm = giocoInModifica();
+  if(!gm) temaInModifica = null;
+  const t = gm ? gm.tema : cfg.tema;
   const box = $("#temaBlocco");
   box.innerHTML = "";
   const p = [];
 
+  const R = salvata || configBase();
+  const sg = gm && salvata && salvata.giochi.find(x => x.id === gm.id);
+  const rt = sg && sg.tema ? sg.tema : R.tema;
+  const T = (e, k) => ripristinabile(e, t, k, rt);
+  const F = (e, k) => ripristinabile(e, t.font, k, rt.font);
+  const G = (sez, e, k) => ripristinabile(e, cfg[sez], k, R[sez]);
+
+  const sezioni = ["tappo", "angolo", "vista", "finale", "suono", "suoniUtente"];
+  const diverso = JSON.stringify(t) !== JSON.stringify(rt) ||
+    (!gm && sezioni.some(k => JSON.stringify(cfg[k]) !== JSON.stringify(R[k])));
+  if(diverso){
+    const riga = el("div", {className:"bottoni rigaTema"});
+    riga.append(el("span", {className:"nota", textContent: salvata
+        ? tr("Ci sono modifiche non ancora salvate.") : tr("Hai cambiato l'aspetto originale.")}),
+      el("button", {textContent: salvata ? tr("Torna all'ultimo salvataggio") : tr("Torna all'originale"), onclick: () => {
+        if(gm) gm.tema = structuredClone(rt);
+        else {
+          cfg.tema = structuredClone(rt);
+          sezioni.forEach(k => { cfg[k] = structuredClone(R[k]); });
+        }
+        suoniValidi(); cambioTema();
+      }}));
+    p.push(riga);
+  }
+
+  if(cfg.giochi.length > 1){
+    const opz = {"": tr("Tutti i giochi (tema generale)")};
+    cfg.giochi.forEach(g => {
+      opz[g.id] = (g.nome || tr("Senza nome")) + (g.tema ? "" : " · " + tr("usa il generale"));
+    });
+    p.push(el("h2", {textContent:tr("TEMA PER")}));
+    p.push(scelta("", opz, gm ? gm.id : "", v => { temaInModifica = v || null; cambioTema(); }));
+    if(gm){
+      const b = el("div", {className:"bottoni"});
+      if(!gm.tema) b.append(el("button", {className:"forte", textContent:tr("Crea un tema per questo gioco"),
+        onclick: () => { gm.tema = structuredClone(cfg.tema); cambioTema(); }}));
+      else b.append(el("button", {className:"quieto", textContent:tr("Torna al tema generale"),
+        onclick: () => { delete gm.tema; cambioTema(); }}));
+      p.push(b);
+      const altri = cfg.giochi.filter(x => x !== gm && x.tema);
+      if(altri.length){
+        const da = {"": "—"};
+        altri.forEach(x => { da[x.id] = x.nome || tr("Senza nome"); });
+        p.push(scelta(tr("Copia il tema da un altro gioco"), da, "", v => {
+          if(v){ gm.tema = structuredClone(altri.find(x => x.id === v).tema); cambioTema(); }
+        }));
+      }
+      if(!gm.tema){
+        p.push(el("p", {className:"nota", textContent:tr("Questo gioco usa il tema generale.")}));
+        box.append(...inSchede(p));
+        return;
+      }
+    }
+  }
+
+  p.push(el("h2", {textContent:tr("TEMI PRONTI")}));
+  const griglia = el("div", {className:"temi"});
+  for(const {nome, ...valori} of Object.values(TEMI)){
+    const mini = el("span", {className:"mini" + (valori.onde ? "" : " piatto"), textContent:"Aa"});
+    mini.style.cssText = `background:${valori.sfondo};color:${valori.testo};` +
+      `--a:${valori.ondeColori[0]};--b:${valori.ondeColori[1]}`;
+    griglia.append(el("button", {onclick: () => { Object.assign(t, structuredClone(valori)); aggiorna(); disegnaTema(); }},
+      mini, el("span", {className:"nome", textContent:tr(nome)})));
+  }
+  p.push(griglia);
+  p.push(el("p", {className:"nota", textContent:tr("Cambia colori e decorazioni. Poi puoi ritoccare tutto qui sotto.")}));
+
   p.push(el("h2", {textContent:tr("COLORI")}));
-  p.push(rigaColore(tr("Sfondo"), t.sfondo, v => { t.sfondo = v; aggiorna(); }));
-  p.push(rigaColore(tr("Testo"), t.testo, v => { t.testo = v; aggiorna(); }));
-  p.push(rigaColore(tr("Timer sotto soglia"), t.giallo, v => { t.giallo = v; aggiorna(); }));
-  p.push(rigaColore(tr("Timer agli ultimi secondi"), t.rosso, v => { t.rosso = v; aggiorna(); }));
+  p.push(T(rigaColore(tr("Sfondo"), t.sfondo, v => { t.sfondo = v; aggiorna(); }), "sfondo"));
+  p.push(T(rigaColore(tr("Testo"), t.testo, v => { t.testo = v; aggiorna(); }), "testo"));
+  p.push(T(rigaColore(tr("Timer sotto soglia"), t.giallo, v => { t.giallo = v; aggiorna(); }), "giallo"));
+  p.push(T(rigaColore(tr("Timer agli ultimi secondi"), t.rosso, v => { t.rosso = v; aggiorna(); }), "rosso"));
+
+  const spuntaRisposta = spunta(tr("Risposta nel colore della squadra"), !t.risposta,
+    v => { t.risposta = v ? "" : t.ondeColori[1]; aggiorna(); disegnaTema(); });
+  p.push(t.risposta ? spuntaRisposta : T(spuntaRisposta, "risposta"));
+  if(t.risposta) p.push(T(rigaColore(tr("Colore della risposta"), t.risposta, v => { t.risposta = v; aggiorna(); }), "risposta"));
 
   const c = contrasto(t.sfondo, t.testo);
   if(c < 4.5){
@@ -132,16 +229,31 @@ function disegnaTema(){
   }
 
   p.push(el("h2", {textContent:tr("DECORAZIONI")}));
-  p.push(spunta(tr("Onde colorate sopra e sotto"), t.onde, v => { t.onde = v; aggiorna(); disegnaTema(); }));
+  p.push(T(spunta(tr("Onde colorate sopra e sotto"), t.onde, v => { t.onde = v; aggiorna(); disegnaTema(); }), "onde"));
   if(t.onde){
     const g = el("div", {className:"duo3"});
     t.ondeColori.forEach((col, i) => g.append(inpColore(col, v => { t.ondeColori[i] = v; aggiorna(); })));
-    p.push(campo(tr("Colori delle onde, da sinistra a destra"), g));
-    p.push(cursore(tr("Altezza delle onde"), t.altezzaOnde, 60, 260, 5, " px",
-      v => { t.altezzaOnde = v; aggiorna(); }));
+    p.push(T(campo(tr("Colori delle onde, da sinistra a destra"), g), "ondeColori"));
+    p.push(T(cursore(tr("Altezza delle onde"), t.altezzaOnde, 60, 260, 5, " px",
+      v => { t.altezzaOnde = v; aggiorna(); }), "altezzaOnde"));
   }
-  p.push(spunta(tr("Granelli negli angoli"), t.granelli, v => { t.granelli = v; aggiorna(); }));
-  p.push(spunta(tr("Barra del tempo sul bordo"), t.barra, v => { t.barra = v; aggiorna(); }));
+  p.push(T(spunta(tr("Granelli negli angoli"), t.granelli, v => { t.granelli = v; aggiorna(); }), "granelli"));
+  p.push(T(spunta(tr("Barra del tempo sul bordo"), t.barra, v => { t.barra = v; aggiorna(); }), "barra"));
+
+  p.push(el("h2", {textContent:tr("IMMAGINE DI SFONDO")}));
+  const bi = el("div", {className:"bottoni"});
+  bi.append(el("button", {textContent:tr(t.immagine ? "Cambia immagine…" : "Carica un'immagine…"), onclick: () =>
+    chiediFile("image/*", dati => { t.immagine = dati; aggiorna(); disegnaTema(); })}));
+  if(t.immagine) bi.append(el("button", {className:"quieto", textContent:tr("Togli l'immagine"), onclick: () => {
+    t.immagine = ""; aggiorna(); disegnaTema();
+  }}));
+  p.push(T(bi, "immagine"));
+  if(t.immagine){
+    p.push(T(cursore(tr("Velo del colore di sfondo sopra l'immagine"), t.velo, 0, 90, 5, " %",
+      v => { t.velo = v; dipingi(); segnaModifica(); }), "velo"));
+  } else {
+    p.push(el("p", {className:"nota", textContent:tr("Una foto o una texture dietro a tutte le slide.")}));
+  }
 
   p.push(el("h2", {textContent:tr("CARATTERE")}));
   const b = el("div", {className:"bottoni"});
@@ -156,16 +268,25 @@ function disegnaTema(){
       fontSporco = true; riadattaTutti(); segnaModifica(); disegnaTema();
     }}));
   }
-  p.push(b);
+  p.push(F(b, ["dati", "nome"]));
   if(t.font.nome) p.push(el("p", {className:"nota", textContent: tr("In uso: %s", t.font.nome)}));
-  p.push(cursore(tr("Dimensione massima delle parole"), t.font.scala, 40, 160, 5, " %",
-    v => { t.font.scala = v; riadattaTutti(); segnaModifica(); }));
-  p.push(cursore(tr("Spessore"), t.font.peso, 100, 900, 100, "",
-    v => { t.font.peso = v; riadattaTutti(); segnaModifica(); }));
-  p.push(cursore(tr("Spaziatura tra le lettere"), t.font.spaziatura, -5, 20, 1, "",
-    v => { t.font.spaziatura = v; riadattaTutti(); segnaModifica(); }));
-  p.push(spunta(tr("Corsivo"), t.font.corsivo, v => { t.font.corsivo = v; riadattaTutti(); segnaModifica(); }));
-  p.push(spunta(tr("Tutto maiuscolo"), t.font.maiuscolo, v => { t.font.maiuscolo = v; riadattaTutti(); segnaModifica(); }));
+  p.push(F(cursore(tr("Dimensione massima delle parole"), t.font.scala, 40, 160, 5, " %",
+    v => { t.font.scala = v; riadattaTutti(); segnaModifica(); }), "scala"));
+  p.push(F(cursore(tr("Spessore"), t.font.peso, 100, 900, 100, "",
+    v => { t.font.peso = v; riadattaTutti(); segnaModifica(); }), "peso"));
+  p.push(F(cursore(tr("Spaziatura tra le lettere"), t.font.spaziatura, -5, 20, 1, "",
+    v => { t.font.spaziatura = v; riadattaTutti(); segnaModifica(); }), "spaziatura"));
+  p.push(F(spunta(tr("Corsivo"), t.font.corsivo, v => { t.font.corsivo = v; riadattaTutti(); segnaModifica(); }), "corsivo"));
+  p.push(F(spunta(tr("Tutto maiuscolo"), t.font.maiuscolo, v => { t.font.maiuscolo = v; riadattaTutti(); segnaModifica(); }), "maiuscolo"));
+
+  p.push(el("h2", {textContent:tr("TRANSIZIONE TRA LE PAROLE")}));
+  p.push(T(scelta("", tOpz(TRANSIZIONI), t.transizione, v => { t.transizione = v; dipingi(); segnaModifica(); }), "transizione"));
+
+  if(gm){
+    p.push(el("p", {className:"nota", textContent:tr("Tappo, loghi, timer e suono valgono per tutti i giochi.")}));
+    box.append(...inSchede(p));
+    return;
+  }
 
   p.push(el("h2", {textContent:tr("TAPPO")}));
   const bt = el("div", {className:"bottoni"});
@@ -177,15 +298,15 @@ function disegnaTema(){
   bt.append(el("button", {className:"quieto", textContent:tr("Togli il logo"), onclick: () => {
     cfg.tappo.logo = LOGO_SEGNAPOSTO; aggiorna(); disegnaTema();
   }}));
-  p.push(bt);
-  p.push(spunta(tr("Mostra il logo sul tappo"), cfg.tappo.mostraLogo,
-    v => { cfg.tappo.mostraLogo = v; aggiorna(); }));
-  p.push(cursore(tr("Dimensione del logo"), cfg.tappo.scalaLogo, 30, 220, 5, " %",
-    v => { cfg.tappo.scalaLogo = v; aggiorna(); }));
-  p.push(campo(tr("Scritta sul tappo"), inpTesto(cfg.tappo.testo, tr("es. Torniamo tra poco"),
-    v => { cfg.tappo.testo = v; aggiorna(); })));
-  p.push(cursore(tr("Dimensione della scritta"), cfg.tappo.scalaTesto, 40, 200, 5, " %",
-    v => { cfg.tappo.scalaTesto = v; aggiorna(); }));
+  p.push(G("tappo", bt, "logo"));
+  p.push(G("tappo", spunta(tr("Mostra il logo sul tappo"), cfg.tappo.mostraLogo,
+    v => { cfg.tappo.mostraLogo = v; aggiorna(); }), "mostraLogo"));
+  p.push(G("tappo", cursore(tr("Dimensione del logo"), cfg.tappo.scalaLogo, 30, 220, 5, " %",
+    v => { cfg.tappo.scalaLogo = v; aggiorna(); }), "scalaLogo"));
+  p.push(G("tappo", campo(tr("Scritta sul tappo"), inpTesto(cfg.tappo.testo, tr("es. Torniamo tra poco"),
+    v => { cfg.tappo.testo = v; aggiorna(); })), "testo"));
+  p.push(G("tappo", cursore(tr("Dimensione della scritta"), cfg.tappo.scalaTesto, 40, 200, 5, " %",
+    v => { cfg.tappo.scalaTesto = v; aggiorna(); }), "scalaTesto"));
 
   p.push(el("h2", {textContent:tr("LOGO NELL'ANGOLO")}));
   const ba = el("div", {className:"bottoni"});
@@ -194,33 +315,64 @@ function disegnaTema(){
   ba.append(el("button", {className:"quieto", textContent:tr("Usa lo stesso del tappo"), onclick: () => {
     cfg.angolo.logo = cfg.tappo.logo; aggiorna();
   }}));
-  p.push(ba);
-  p.push(spunta(tr("Mostra il logo sulle slide"), cfg.angolo.mostra, v => { cfg.angolo.mostra = v; aggiorna(); }));
-  p.push(scelta(tr("Posizione"), {
+  p.push(G("angolo", ba, "logo"));
+  p.push(G("angolo", spunta(tr("Mostra il logo sulle slide"), cfg.angolo.mostra, v => { cfg.angolo.mostra = v; aggiorna(); }), "mostra"));
+  p.push(G("angolo", scelta(tr("Posizione"), {
     "alto-destra":tr("In alto a destra"), "alto-sinistra":tr("In alto a sinistra"),
     "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
-  }, cfg.angolo.posizione, v => { cfg.angolo.posizione = v; aggiorna(); }));
-  p.push(cursore(tr("Dimensione"), cfg.angolo.scala, 40, 260, 5, " %", v => { cfg.angolo.scala = v; aggiorna(); }));
+  }, cfg.angolo.posizione, v => { cfg.angolo.posizione = v; aggiorna(); }), "posizione"));
+  p.push(G("angolo", cursore(tr("Dimensione"), cfg.angolo.scala, 40, 260, 5, " %", v => { cfg.angolo.scala = v; aggiorna(); }), "scala"));
 
   p.push(el("h2", {textContent:tr("TIMER")}));
-  p.push(scelta(tr("Posizione sulle slide con le parole"), {
+  p.push(G("vista", scelta(tr("Posizione sulle slide con le parole"), {
     "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
     "alto-destra":tr("In alto a destra"), "centro-basso":tr("In basso al centro"),
-  }, cfg.vista.timerPosizione, v => { cfg.vista.timerPosizione = v; aggiorna(); }));
-  p.push(cursore(tr("Dimensione"), cfg.vista.timerScala, 50, 180, 5, " %",
-    v => { cfg.vista.timerScala = v; aggiorna(); }));
-  p.push(cursore(tr("Cambia colore sotto i"), cfg.vista.sogliaGialla, 3, 60, 1, " s",
-    v => { cfg.vista.sogliaGialla = v; aggiorna(); }));
-  p.push(cursore(tr("Ultimi secondi sotto i"), cfg.vista.sogliaRossa, 1, 30, 1, " s",
-    v => { cfg.vista.sogliaRossa = v; aggiorna(); }));
+  }, cfg.vista.timerPosizione, v => { cfg.vista.timerPosizione = v; aggiorna(); }), "timerPosizione"));
+  p.push(G("vista", cursore(tr("Dimensione"), cfg.vista.timerScala, 50, 180, 5, " %",
+    v => { cfg.vista.timerScala = v; aggiorna(); }), "timerScala"));
+  p.push(G("vista", cursore(tr("Cambia colore sotto i"), cfg.vista.sogliaGialla, 3, 60, 1, " s",
+    v => { cfg.vista.sogliaGialla = v; aggiorna(); }), "sogliaGialla"));
+  p.push(G("vista", cursore(tr("Ultimi secondi sotto i"), cfg.vista.sogliaRossa, 1, 30, 1, " s",
+    v => { cfg.vista.sogliaRossa = v; aggiorna(); }), "sogliaRossa"));
 
   p.push(el("h2", {textContent:tr("FINE ROUND, PER TUTTI I GIOCHI")}));
-  p.push(scelta(tr("Lo schermo esterno"), {tappo:tr("Torna al tappo"), resta:tr("Resta sull'ultima schermata")},
-    cfg.finale.schermo, v => { cfg.finale.schermo = v; segnaModifica(); }));
-  p.push(scelta(tr("Suono"), {nessuno:tr("Nessuno"), bip:tr("Bip"), campana:tr("Campana"), buzzer:tr("Buzzer")},
-    cfg.suono.tipo, v => { cfg.suono.tipo = v; suona(v, cfg.suono.volume); segnaModifica(); }));
-  p.push(cursore(tr("Volume"), cfg.suono.volume, 0, 100, 5, " %",
-    v => { cfg.suono.volume = v; segnaModifica(); }));
+  p.push(G("finale", scelta(tr("Lo schermo esterno"), {tappo:tr("Torna al tappo"), resta:tr("Resta sull'ultima schermata")},
+    cfg.finale.schermo, v => { cfg.finale.schermo = v; segnaModifica(); }), "schermo"));
+  p.push(G("suono", scelta(tr("Suono"), opzioniSuoni(),
+    cfg.suono.tipo, v => { cfg.suono.tipo = v; suona(v, cfg.suono.volume); segnaModifica(); }), "tipo"));
+  p.push(G("suono", cursore(tr("Volume"), cfg.suono.volume, 0, 100, 5, " %",
+    v => { cfg.suono.volume = v; segnaModifica(); }), "volume"));
+
+  p.push(el("h2", {textContent:tr("I TUOI SUONI")}));
+  cfg.suoniUtente.forEach((s, i) => {
+    const riga = el("div", {className:"riga-squadra"});
+    const nome = inpTesto(s.nome, tr("Nome del suono"), v => { s.nome = v; segnaModifica(); });
+    nome.onblur = () => { disegnaTema(); disegnaGiochi(); };
+    riga.append(
+      el("button", {className:"quieto", textContent:"▶", title:tr("Ascolta"), onclick: () => suona(s.id, cfg.suono.volume)}),
+      nome,
+      el("span", {className:"nota", textContent: Math.round(s.dati.length * .75 / 1024) + " KB"}),
+      el("button", {className:"quieto", textContent:"✕", title:tr("Elimina"), onclick: () => {
+        cfg.suoniUtente.splice(i, 1); suoniValidi();
+        disegnaTema(); disegnaGiochi(); segnaModifica();
+      }}));
+    p.push(riga);
+  });
+  p.push(el("div", {className:"bottoni"}, el("button", {textContent:tr("Aggiungi un suono…"), onclick: () =>
+    chiediFile("audio/*", (dati, nomeFile) => {
+      if(!dati.startsWith("data:audio/")){
+        mostraAvviso("#avvisoPopup", tr("Quel file non è un audio.")); return;
+      }
+      if(dati.length > 5e6 * 4 / 3){
+        mostraAvviso("#avvisoPopup", tr("Il suono è troppo grande: tienilo sotto i 5 MB.")); return;
+      }
+      const id = nuovoId();
+      cfg.suoniUtente.push({id, nome: nomeFile.replace(/\.[^.]+$/, ""), dati});
+      cfg.suono.tipo = id;
+      suona(id, cfg.suono.volume);
+      disegnaTema(); disegnaGiochi(); segnaModifica();
+    })})));
+  p.push(el("p", {className:"nota", textContent:tr("Mp3, wav, ogg… Tienili brevi: finiscono dentro il file salvato. Poi li scegli qui sopra o nel singolo gioco.")}));
   box.append(...inSchede(p));
 }
 
@@ -309,7 +461,7 @@ function disegnaGiochi(){
         bottoncino("↓", tr("Sposta giù"), () => sposta(cfg.giochi, gi, 1),  gi === cfg.giochi.length-1),
         bottoncino("✕", tr("Elimina il gioco"), () => {
           if(cfg.giochi.length <= 1) return;
-          cfg.giochi.splice(gi,1); disegnaGiochi(); segnaModifica();
+          cfg.giochi.splice(gi,1); disegnaGiochi(); cambioTema();
         }),
       ],
       corpo: () => {
@@ -319,7 +471,7 @@ function disegnaGiochi(){
           if(live && live.gi === gi){ live.gioco = v; disegnaRegia(); }
           segnaModifica();
         });
-        nome.onblur = () => disegnaGiochi();
+        nome.onblur = () => { disegnaGiochi(); disegnaTema(); };
         p.push(campo(tr("Nome del gioco"), nome));
 
         p.push(scelta(tr("Template predefinito dei round"), tOpz(TEMPLATE), g.template || "parole",
@@ -351,14 +503,22 @@ function disegnaGiochi(){
         }
 
         g.suono = g.suono || {tipo:"predefinito"};
-        p.push(scelta(tr("Suono di fine"), {
-          predefinito:tr("Come gli altri giochi"), nessuno:tr("Nessuno"),
-          bip:tr("Bip"), campana:tr("Campana"), buzzer:tr("Buzzer"),
-        }, g.suono.tipo, v => {
+        p.push(scelta(tr("Suono di fine"), Object.assign({predefinito:tr("Come gli altri giochi")}, opzioniSuoni()),
+          g.suono.tipo, v => {
           g.suono.tipo = v;
           if(v !== "predefinito" && v !== "nessuno") suona(v, cfg.suono.volume);
           segnaModifica();
         }));
+
+        if(cfg.giochi.length > 1){
+          const rt = el("div", {className:"bottoni rigaTema"});
+          rt.append(el("span", {className:"nota", textContent: g.tema
+              ? tr("Questo gioco ha un tema suo.") : tr("Questo gioco usa il tema generale.")}),
+            el("button", {textContent:tr("Modifica l'aspetto"), onclick: () => {
+              temaInModifica = g.id; mostraPannello("pAspetto"); disegnaTema();
+            }}));
+          p.push(rt);
+        }
 
         const gruppo = el("div", {className:"gruppo"});
         gruppo.style.marginTop = "12px";
@@ -536,6 +696,7 @@ async function salva(){
       await w.write(testo);
       await w.close();
       nota(tr("Salvato alle %s.", new Date().toLocaleTimeString(locale())));
+      salvata = structuredClone(cfg); disegnaTema();
       return;
     }catch(e){
       if(e && e.name === "AbortError") return;
@@ -543,6 +704,7 @@ async function salva(){
     }
   }
   scarica(testo);
+  salvata = structuredClone(cfg); disegnaTema();
   nota(tr("Il tuo browser non può riscrivere il file aperto: ne ha scaricato uno nuovo. " +
           "Sostituisci il vecchio con quello appena scaricato."));
 }
@@ -552,6 +714,7 @@ function importaDaHTML(testo){
   if(!m){ mostraAvviso("#avvisoPopup", tr("In quel file non ho trovato nessuna configurazione.")); return; }
   try{
     applicaConfig(JSON.parse(m[1].replace(/\\u003c/g, "<")));
+    salvata = structuredClone(cfg); disegnaTema();
     $("#avvisoPopup").hidden = true;
     nota(tr("Configurazione ripresa dal file."));
   }catch(e){
@@ -559,12 +722,16 @@ function importaDaHTML(testo){
   }
 }
 
+function temaCompleto(t){
+  const base = configBase().tema;
+  return Object.assign(base, t || {}, {font: Object.assign(base.font, (t || {}).font || {})});
+}
+
 function applicaConfig(nuovo){
   impostaLingua(nuovo.lingua || linguaAttiva());
   const base = configBase();
   cfg = Object.assign(base, nuovo);
-  cfg.tema = Object.assign(base.tema, nuovo.tema || {});
-  cfg.tema.font = Object.assign(base.tema.font, (nuovo.tema || {}).font || {});
+  cfg.tema = temaCompleto(nuovo.tema);
   cfg.tappo = Object.assign(base.tappo, nuovo.tappo || {});
   cfg.angolo = Object.assign(base.angolo, nuovo.angolo || {});
   cfg.vista = Object.assign(base.vista, nuovo.vista || {});
@@ -575,6 +742,7 @@ function applicaConfig(nuovo){
   if(!Array.isArray(cfg.giochi) || !cfg.giochi.length) cfg.giochi = base.giochi;
   cfg.giochi.forEach(g => {
     if(!Array.isArray(g.round)) g.round = [];
+    if(g.tema) g.tema = temaCompleto(g.tema);
     g.round.forEach(x => { if(!squadraDi(x.squadraId)) x.squadraId = cfg.rubrica[0].id; });
   });
   live = null;
@@ -608,6 +776,8 @@ function mostraPannello(id){
     b.setAttribute("aria-selected", on);
     $("#" + b.dataset.pannello).hidden = !on;
   });
+  tappoSporco = fontSporco = true;
+  riadattaTutti();
 }
 document.querySelectorAll("[data-pannello]").forEach(b => { b.onclick = () => mostraPannello(b.dataset.pannello); });
 
@@ -627,7 +797,7 @@ $("#btnNuovoGioco").onclick = () => {
     finale:{schermo:"predefinito", logo:"", testo:""}, suono:{tipo:"predefinito"},
     round:[{squadraId:cfg.rubrica[0].id, secondi:90, voci:"", template:"eredita", aperto:false}],
   });
-  disegnaGiochi(); segnaModifica();
+  disegnaGiochi(); disegnaTema(); segnaModifica();
 };
 $("#btnSalva").onclick = salva;
 $("#btnScaricaCopia").onclick = () => { scarica(generaHTML()); nota(tr("Copia scaricata.")); };
@@ -655,6 +825,7 @@ $("#cEsatto").onkeydown = e => { if(e.key === "Enter") $("#cImponi").click(); };
     if(dentro && dentro.versione){
       impostaLingua(dentro.lingua || LINGUA);
       applicaConfigSilenzioso(dentro);
+      if(dentro.salvatoIl) salvata = structuredClone(cfg);
     }
   }catch(e){}
   if(!cfg.lingua) impostaLingua((navigator.language || "it").toLowerCase().startsWith("it") ? "it" : "en");
@@ -689,8 +860,8 @@ $("#cEsatto").onkeydown = e => { if(e.key === "Enter") $("#cImponi").click(); };
 function applicaConfigSilenzioso(nuovo){
   const base = configBase();
   cfg = Object.assign(base, nuovo);
-  cfg.tema = Object.assign(base.tema, nuovo.tema || {});
-  cfg.tema.font = Object.assign(base.tema.font, (nuovo.tema || {}).font || {});
+  cfg.tema = temaCompleto(nuovo.tema);
+  if(Array.isArray(cfg.giochi)) cfg.giochi.forEach(g => { if(g.tema) g.tema = temaCompleto(g.tema); });
   cfg.tappo = Object.assign(base.tappo, nuovo.tappo || {});
   cfg.angolo = Object.assign(base.angolo, nuovo.angolo || {});
   cfg.vista = Object.assign(base.vista, nuovo.vista || {});

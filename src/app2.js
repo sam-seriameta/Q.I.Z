@@ -96,7 +96,7 @@ function avviaRound(gi, ri){
     mostraTappo: false, mostraFinale: false,
   };
   orologio = Date.now();
-  tappoSporco = true;
+  tappoSporco = fontSporco = true;
   tieniAcceso();
   disegnaRegia(); dipingi();
 }
@@ -104,7 +104,7 @@ function avviaRound(gi, ri){
 function chiudiRound(){
   live = null;
   lasciaSpegnere();
-  tappoSporco = true;
+  tappoSporco = fontSporco = true;
   disegnaRegia(); dipingi();
 }
 

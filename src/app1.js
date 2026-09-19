@@ -7,6 +7,25 @@ const LOGO_SAM = "__LOGO_SAM__";
 
 const COLORI = ["#F5169B","#0FB5DC","#F5A300","#7B2FBE","#2FA36B","#E01B3C","#2F7BD1","#FF7A1A"];
 const TEMPLATE = {timer:"Solo timer", parole:"Timer e parole", risposte:"Parole e risposte"};
+const SUONI_FILE = "__SUONI__";
+const SUONI = {nessuno:"Nessuno", campana:"Campana", bip:"Bip", buzzer:"Buzzer", arcade:"Arcade",
+               sax:"Sax", steel:"Steel drum", pizzicato:"Pizzicato", colpo:"Colpo di scena",
+               "buzzer-tv":"Buzzer TV", "ding-ding":"Ding ding", countdown:"Conto alla rovescia", gong:"Gong"};
+const TRANSIZIONI = {nessuna:"Nessuna", dissolvenza:"Dissolvenza", scorrimento:"Scorrimento dal basso", pop:"Pop"};
+
+/* temi pronti: toccano solo colori e decorazioni, non font né immagine di sfondo */
+const TEMI = {
+  sam:       {nome:"SAM", sfondo:"#FFF6FA", testo:"#1B1033", giallo:"#F59E00", rosso:"#E01B3C",
+              ondeColori:["#29D3F0","#F5169B","#F5169B","#FFD447"], onde:true, granelli:true},
+  notte:     {nome:"Notte", sfondo:"#15122A", testo:"#F4F1FA", giallo:"#FFB406", rosso:"#FF4A5A",
+              ondeColori:["#7B2FBE","#F5169B","#0FB5DC","#7B2FBE"], onde:true, granelli:true},
+  minimal:   {nome:"Minimal", sfondo:"#F6F5F2", testo:"#1E1E24", giallo:"#D98E04", rosso:"#D1293D",
+              ondeColori:["#1E1E24","#1E1E24","#1E1E24","#1E1E24"], onde:false, granelli:false},
+  contrasto: {nome:"Alto contrasto", sfondo:"#000000", testo:"#FFFFFF", giallo:"#FFD400", rosso:"#FF3B30",
+              ondeColori:["#FFD400","#FFFFFF","#FFFFFF","#FFD400"], onde:true, granelli:false},
+  carta:     {nome:"Carta", sfondo:"#F3EBDD", testo:"#3A2A1A", giallo:"#D98E04", rosso:"#B23A48",
+              ondeColori:["#C8553D","#F28F3B","#588B8B","#FFD5C2"], onde:true, granelli:true},
+};
 
 const FUNZIONI = [
   ["avviaFerma", "Avvia / ferma il tempo", "Space"],
@@ -34,6 +53,7 @@ function configBase(){
       sfondo:"#FFF6FA", testo:"#1B1033", giallo:"#F59E00", rosso:"#E01B3C",
       onde:true, ondeColori:["#29D3F0","#F5169B","#F5169B","#FFD447"],
       altezzaOnde:170, granelli:true, barra:true,
+      immagine:"", velo:40, risposta:"", transizione:"nessuna",
       font:{nome:"", dati:"", scala:100, peso:400, corsivo:false, maiuscolo:false, spaziatura:0},
     },
     tappo:  {logo:LOGO_SAM, mostraLogo:true, scalaLogo:145, testo:"", scalaTesto:100},
@@ -42,6 +62,7 @@ function configBase(){
     suono:  {tipo:"campana", volume:60},
     finale: {schermo:"tappo"},
     tasti:  Object.fromEntries(FUNZIONI.map(f => [f[0], f[2]])),
+    suoniUtente: [],
     rubrica:[a, b],
     giochi: [{
       id:nuovoId(), nome:tr("Gioco %s", 1), aperto:true,
@@ -59,11 +80,29 @@ function configBase(){
 let cfg = configBase();
 let live = null;
 let tappoSporco = true, fontSporco = true;
+let temaInModifica = null;  // id del gioco di cui si sta modificando il tema, null = tema generale
+let salvata = null;         // copia dell'ultima configurazione scritta nel file, per i ripristini
 
 const finestre = {esterna:null};
 const schermi = [];
 const $ = s => document.querySelector(s);
 const squadraDi = id => cfg.rubrica.find(s => s.id === id) || cfg.rubrica[0];
+
+/* con un gioco solo il tema per gioco non è attivo: vale sempre quello generale */
+function temaDi(g){ return cfg.giochi.length > 1 && g && g.tema ? g.tema : cfg.tema; }
+const suonoUtente = id => cfg.suoniUtente.find(s => s.id === id);
+const opzioniSuoni = () => Object.assign(tOpz(SUONI),
+  Object.fromEntries(cfg.suoniUtente.map(s => [s.id, s.nome || tr("Senza nome")])));
+
+/* dopo aver tolto un suono caricato, chi lo usava torna al predefinito */
+function suoniValidi(){
+  if(!SUONI[cfg.suono.tipo] && !suonoUtente(cfg.suono.tipo)) cfg.suono.tipo = "campana";
+  cfg.giochi.forEach(g => {
+    if(g.suono && g.suono.tipo !== "predefinito" && !SUONI[g.suono.tipo] && !suonoUtente(g.suono.tipo))
+      g.suono.tipo = "predefinito";
+  });
+}
+const giocoInModifica = () => cfg.giochi.length > 1 ? cfg.giochi.find(g => g.id === temaInModifica) : null;
 
 /* ---------------- utilità ---------------- */
 
@@ -131,9 +170,16 @@ let ctxAudio = null;
 function suona(tipo, volume){
   if(!tipo || tipo === "nessuno") return;
   try{
+    const v = Math.max(0, Math.min(1, (volume ?? 60) / 100));
+    const file = SUONI_FILE[tipo] || (suonoUtente(tipo) || {}).dati;
+    if(file){
+      const a = new Audio(file);
+      a.volume = v;
+      a.play().catch(() => {});
+      return;
+    }
     ctxAudio = ctxAudio || new (window.AudioContext || window.webkitAudioContext)();
     if(ctxAudio.state === "suspended") ctxAudio.resume();
-    const v = Math.max(0, Math.min(1, (volume ?? 60) / 100));
     const t0 = ctxAudio.currentTime;
     const nota = (freq, inizio, durata, onda, picco) => {
       const o = ctxAudio.createOscillator(), g = ctxAudio.createGain();
@@ -180,6 +226,7 @@ const ONDE_GIU = `
 
 const STRUTTURA = `
 <div class="schermo" data-fase="tappo">
+  <div class="fondo-img"></div>
   ${ONDE_SU}${ONDE_GIU}
   <div class="granelli gsu"></div>
   <div class="granelli ggiu"></div>
@@ -214,6 +261,7 @@ function agganciaSchermo(radice, doc){
   const s = radice.querySelector(".schermo");
   const rif = {
     doc, radice, schermo: s,
+    fondoImg:   s.querySelector(".fondo-img"),
     imgGrande:  s.querySelector(".marchio-grande"),
     imgAngolo:  [...s.querySelectorAll(".marchio-angolo")],
     tappoTesto: s.querySelector(".tappo-testo"),
@@ -240,26 +288,26 @@ function scala(rif){
 const scalaTutti = () => schermi.forEach(scala);
 addEventListener("resize", scalaTutti);
 
-function cssFont(){
-  const f = cfg.tema.font;
+function cssFont(t){
+  const f = t.font;
   if(!f.dati) return "";
   return `@font-face{font-family:Utente;src:url("${f.dati}");font-display:block}`;
 }
 
-function applicaFont(doc){
+function applicaFont(doc, t){
   let st = doc.getElementById("fontUtente");
   if(!st){
     st = doc.createElement("style");
     st.id = "fontUtente";
     doc.head.appendChild(st);
   }
-  st.textContent = cssFont();
+  st.textContent = cssFont(t);
 }
 
-function adatta(s){
+function adatta(s, tema){
   const box = s.parola, t = s.parolaTesto;
   if(!t.textContent) return;
-  const max = Math.round(150 * (cfg.tema.font.scala / 100));
+  const max = Math.round(150 * (tema.font.scala / 100));
   let lo = 20, hi = Math.max(24, max), best = 20;
   while(lo <= hi){
     const m = (lo + hi) >> 1;
@@ -301,11 +349,15 @@ function dipingi(){
     testoT = r.finale.testo || "";
   }
 
-  const t = cfg.tema;
+  const tLive = r ? temaDi(cfg.giochi[r.gi]) : cfg.tema;
+  const gm = giocoInModifica();
   $("#statoTempo").textContent = r ? testo : "--:--";
 
   for(const s of schermi){
+    /* a round fermo, l'anteprima mostra il tema che si sta modificando */
+    const t = !r && s.doc === document && gm && !$("#pAspetto").hidden ? temaDi(gm) : tLive;
     const el = s.schermo;
+    el.dataset.transizione = t.transizione;
     el.dataset.fase = fase;
     el.dataset.angolo = cfg.angolo.posizione;
     el.dataset.timer = cfg.vista.timerPosizione;
@@ -322,6 +374,8 @@ function dipingi(){
     st.setProperty("--testo", t.testo);
     st.setProperty("--giallo", t.giallo);
     st.setProperty("--rosso", t.rosso);
+    st.setProperty("--velo", t.immagine ? t.velo / 100 : 0);
+    st.setProperty("--risposta", t.risposta || "var(--squadra)");
     st.setProperty("--altezzaOnde", t.altezzaOnde + "px");
     st.setProperty("--scalaLogo", cfg.tappo.scalaLogo / 100);
     st.setProperty("--scalaTappoTesto", cfg.tappo.scalaTesto / 100);
@@ -347,9 +401,10 @@ function dipingi(){
       st.setProperty("--g4", mescola(c, t.sfondo, .45));
     }
 
-    if(fontSporco) applicaFont(s.doc);
+    if(fontSporco) applicaFont(s.doc, t);
 
     if(tappoSporco){
+      s.fondoImg.style.backgroundImage = t.immagine ? `url("${t.immagine}")` : "";
       s.imgGrande.src = logoT || "";
       s.imgGrande.hidden = !logoT;
       s.imgAngolo.forEach(i => { i.src = cfg.angolo.logo || ""; i.hidden = !cfg.angolo.logo; });
@@ -369,7 +424,15 @@ function dipingi(){
       else voce = v.d;
     }
     s.parola.className = classe;
-    if(s.ultimaVoce !== voce){ s.parolaTesto.textContent = voce; s.ultimaVoce = voce; adatta(s); }
+    if(s.ultimaVoce !== voce){
+      const nuova = s.parolaTesto.textContent !== voce;
+      s.parolaTesto.textContent = voce; s.ultimaVoce = voce; adatta(s, t);
+      if(nuova){  // riavvia l'animazione d'entrata
+        s.parolaTesto.classList.remove("entra");
+        void s.parolaTesto.offsetWidth;
+        s.parolaTesto.classList.add("entra");
+      }
+    }
   }
   tappoSporco = false; fontSporco = false;
 }

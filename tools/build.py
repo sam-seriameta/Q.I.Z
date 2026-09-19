@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unisce i sorgenti in un unico file HTML autonomo, che funziona anche offline."""
 
+import base64
 import json
 import pathlib
 import sys
@@ -30,7 +31,11 @@ def costruisci():
     js = "\n".join(
         leggi(SRC / n) for n in ["lingue.js", "app1.js", "app2.js", "app3.js"]
     )
-    js = (js.replace("__VERSIONE__", VERSIONE)
+    # suoni di fine round: ogni mp3 in tools/suoni diventa un tipo, col nome del file
+    suoni = {p.stem: "data:audio/mpeg;base64," + base64.b64encode(p.read_bytes()).decode()
+             for p in sorted((TOOLS / "suoni").glob("*.mp3"))}
+    js = (js.replace('"__SUONI__"', json.dumps(suoni))
+            .replace("__VERSIONE__", VERSIONE)
             .replace("__LOGO_SEGNAPOSTO__", logo)
             .replace("__LOGO_SAM__", logo_sam)
             .replace("__REPO__", REPO))
