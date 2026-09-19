@@ -1,9 +1,9 @@
-# Regia — timer e parole per giochi dal vivo
+# Q.I.Z — timer e parole per giochi dal vivo
 
 Un file HTML solo. Regia su un monitor, schermo proiettato sull'altro.
 Niente account, niente server, niente rete: doppio clic e funziona.
 
-**[Apri l'app](https://sam-seriameta.github.io/ControQuiz/)** · **[Istruzioni](ISTRUZIONI.md)** · **[Instructions in English](INSTRUCTIONS.md)**
+**[Apri l'app](https://sam-seriameta.github.io/Q.I.Z/)** · **[Istruzioni](ISTRUZIONI.md)** · **[Instructions in English](INSTRUCTIONS.md)**
 
 ---
 

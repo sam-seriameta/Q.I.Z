@@ -12,8 +12,7 @@ DIST = RADICE / "dist"
 
 VERSIONE = "0.2.0"
 
-# sostituisci con la tua repo quando la crei
-REPO = "https://github.com/UTENTE/REPO"
+REPO = "https://github.com/sam-seriameta/Q.I.Z"
 
 
 def leggi(percorso):

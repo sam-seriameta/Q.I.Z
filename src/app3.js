@@ -8,7 +8,7 @@ function el(tag, props, ...figli){
 }
 
 function campo(testoEtichetta, dentro){
-  const d = el("div");
+  const d = el("div", {className:"campo"});
   if(testoEtichetta) d.append(el("label", {textContent: testoEtichetta}));
   d.append(dentro);
   return d;
@@ -33,7 +33,7 @@ function rigaColore(testoEtichetta, valore, alCambio){
 }
 
 function cursore(testoEtichetta, valore, min, max, passo, suffisso, alCambio){
-  const d = el("div");
+  const d = el("div", {className:"campo"});
   d.append(el("label", {textContent: testoEtichetta}));
   const riga = el("div", {className:"cursore"});
   const i = el("input", {type:"range", min, max, step:passo, value:valore});
@@ -117,120 +117,121 @@ function disegnaTema(){
   const t = cfg.tema;
   const box = $("#temaBlocco");
   box.innerHTML = "";
-  box.append(blocco({
-    titolo: tr("Tema e loghi"),
-    sommario: (t.font.nome || tr("carattere base")) + (t.onde ? " · " + tr("onde") : ""),
-    pallini: [t.sfondo, t.testo, t.ondeColori[0], t.ondeColori[3]],
-    aperto: apertoTema,
-    apri: () => { apertoTema = !apertoTema; disegnaTema(); },
-    corpo: () => {
-      const p = [];
+  const p = [];
 
-      p.push(el("h2", {textContent:tr("COLORI")}));
-      p.push(rigaColore(tr("Sfondo"), t.sfondo, v => { t.sfondo = v; aggiorna(); }));
-      p.push(rigaColore(tr("Testo"), t.testo, v => { t.testo = v; aggiorna(); }));
-      p.push(rigaColore(tr("Timer sotto soglia"), t.giallo, v => { t.giallo = v; aggiorna(); }));
-      p.push(rigaColore(tr("Timer agli ultimi secondi"), t.rosso, v => { t.rosso = v; aggiorna(); }));
+  p.push(el("h2", {textContent:tr("COLORI")}));
+  p.push(rigaColore(tr("Sfondo"), t.sfondo, v => { t.sfondo = v; aggiorna(); }));
+  p.push(rigaColore(tr("Testo"), t.testo, v => { t.testo = v; aggiorna(); }));
+  p.push(rigaColore(tr("Timer sotto soglia"), t.giallo, v => { t.giallo = v; aggiorna(); }));
+  p.push(rigaColore(tr("Timer agli ultimi secondi"), t.rosso, v => { t.rosso = v; aggiorna(); }));
 
-      const c = contrasto(t.sfondo, t.testo);
-      if(c < 4.5){
-        p.push(el("p", {className:"avviso",
-          textContent: tr("Sfondo e testo hanno poco contrasto (%s:1). Da lontano si legge male.", c.toFixed(1))}));
-      }
+  const c = contrasto(t.sfondo, t.testo);
+  if(c < 4.5){
+    p.push(el("p", {className:"avviso",
+      textContent: tr("Sfondo e testo hanno poco contrasto (%s:1). Da lontano si legge male.", c.toFixed(1))}));
+  }
 
-      p.push(el("h2", {textContent:tr("DECORAZIONI")}));
-      p.push(spunta(tr("Onde colorate sopra e sotto"), t.onde, v => { t.onde = v; aggiorna(); disegnaTema(); }));
-      if(t.onde){
-        const g = el("div", {className:"duo3"});
-        t.ondeColori.forEach((col, i) => g.append(inpColore(col, v => { t.ondeColori[i] = v; aggiorna(); })));
-        p.push(campo(tr("Colori delle onde, da sinistra a destra"), g));
-        p.push(cursore(tr("Altezza delle onde"), t.altezzaOnde, 60, 260, 5, " px",
-          v => { t.altezzaOnde = v; aggiorna(); }));
-      }
-      p.push(spunta(tr("Granelli negli angoli"), t.granelli, v => { t.granelli = v; aggiorna(); }));
-      p.push(spunta(tr("Barra del tempo sul bordo"), t.barra, v => { t.barra = v; aggiorna(); }));
+  p.push(el("h2", {textContent:tr("DECORAZIONI")}));
+  p.push(spunta(tr("Onde colorate sopra e sotto"), t.onde, v => { t.onde = v; aggiorna(); disegnaTema(); }));
+  if(t.onde){
+    const g = el("div", {className:"duo3"});
+    t.ondeColori.forEach((col, i) => g.append(inpColore(col, v => { t.ondeColori[i] = v; aggiorna(); })));
+    p.push(campo(tr("Colori delle onde, da sinistra a destra"), g));
+    p.push(cursore(tr("Altezza delle onde"), t.altezzaOnde, 60, 260, 5, " px",
+      v => { t.altezzaOnde = v; aggiorna(); }));
+  }
+  p.push(spunta(tr("Granelli negli angoli"), t.granelli, v => { t.granelli = v; aggiorna(); }));
+  p.push(spunta(tr("Barra del tempo sul bordo"), t.barra, v => { t.barra = v; aggiorna(); }));
 
-      p.push(el("h2", {textContent:tr("CARATTERE")}));
-      const b = el("div", {className:"bottoni"});
-      b.append(el("button", {textContent:tr("Carica un font…"), onclick: () =>
-        chiediFile(".woff,.woff2,.ttf,.otf,font/*", (dati, nome) => {
-          t.font.dati = dati; t.font.nome = nome;
-          fontSporco = true; riadattaTutti(); segnaModifica(); disegnaTema();
-        })}));
-      if(t.font.dati){
-        b.append(el("button", {className:"quieto", textContent:tr("Torna al carattere base"), onclick: () => {
-          t.font.dati = ""; t.font.nome = "";
-          fontSporco = true; riadattaTutti(); segnaModifica(); disegnaTema();
-        }}));
-      }
-      p.push(b);
-      if(t.font.nome) p.push(el("p", {className:"nota", textContent: tr("In uso: %s", t.font.nome)}));
-      p.push(cursore(tr("Dimensione massima delle parole"), t.font.scala, 40, 160, 5, " %",
-        v => { t.font.scala = v; riadattaTutti(); segnaModifica(); }));
-      p.push(cursore(tr("Spessore"), t.font.peso, 100, 900, 100, "",
-        v => { t.font.peso = v; riadattaTutti(); segnaModifica(); }));
-      p.push(cursore(tr("Spaziatura tra le lettere"), t.font.spaziatura, -5, 20, 1, "",
-        v => { t.font.spaziatura = v; riadattaTutti(); segnaModifica(); }));
-      p.push(spunta(tr("Corsivo"), t.font.corsivo, v => { t.font.corsivo = v; riadattaTutti(); segnaModifica(); }));
-      p.push(spunta(tr("Tutto maiuscolo"), t.font.maiuscolo, v => { t.font.maiuscolo = v; riadattaTutti(); segnaModifica(); }));
+  p.push(el("h2", {textContent:tr("CARATTERE")}));
+  const b = el("div", {className:"bottoni"});
+  b.append(el("button", {textContent:tr("Carica un font…"), onclick: () =>
+    chiediFile(".woff,.woff2,.ttf,.otf,font/*", (dati, nome) => {
+      t.font.dati = dati; t.font.nome = nome;
+      fontSporco = true; riadattaTutti(); segnaModifica(); disegnaTema();
+    })}));
+  if(t.font.dati){
+    b.append(el("button", {className:"quieto", textContent:tr("Torna al carattere base"), onclick: () => {
+      t.font.dati = ""; t.font.nome = "";
+      fontSporco = true; riadattaTutti(); segnaModifica(); disegnaTema();
+    }}));
+  }
+  p.push(b);
+  if(t.font.nome) p.push(el("p", {className:"nota", textContent: tr("In uso: %s", t.font.nome)}));
+  p.push(cursore(tr("Dimensione massima delle parole"), t.font.scala, 40, 160, 5, " %",
+    v => { t.font.scala = v; riadattaTutti(); segnaModifica(); }));
+  p.push(cursore(tr("Spessore"), t.font.peso, 100, 900, 100, "",
+    v => { t.font.peso = v; riadattaTutti(); segnaModifica(); }));
+  p.push(cursore(tr("Spaziatura tra le lettere"), t.font.spaziatura, -5, 20, 1, "",
+    v => { t.font.spaziatura = v; riadattaTutti(); segnaModifica(); }));
+  p.push(spunta(tr("Corsivo"), t.font.corsivo, v => { t.font.corsivo = v; riadattaTutti(); segnaModifica(); }));
+  p.push(spunta(tr("Tutto maiuscolo"), t.font.maiuscolo, v => { t.font.maiuscolo = v; riadattaTutti(); segnaModifica(); }));
 
-      p.push(el("h2", {textContent:tr("TAPPO")}));
-      const bt = el("div", {className:"bottoni"});
-      bt.append(el("button", {textContent:tr("Carica il logo…"), onclick: () =>
-        chiediFile("image/*", dati => { cfg.tappo.logo = dati; cfg.tappo.mostraLogo = true; aggiorna(); disegnaTema(); })}));
-      bt.append(el("button", {className:"quieto", textContent:tr("Rimetti il logo SAM"), onclick: () => {
-        cfg.tappo.logo = LOGO_SAM; aggiorna(); disegnaTema();
-      }}));
-      bt.append(el("button", {className:"quieto", textContent:tr("Togli il logo"), onclick: () => {
-        cfg.tappo.logo = LOGO_SEGNAPOSTO; aggiorna(); disegnaTema();
-      }}));
-      p.push(bt);
-      p.push(spunta(tr("Mostra il logo sul tappo"), cfg.tappo.mostraLogo,
-        v => { cfg.tappo.mostraLogo = v; aggiorna(); }));
-      p.push(cursore(tr("Dimensione del logo"), cfg.tappo.scalaLogo, 30, 220, 5, " %",
-        v => { cfg.tappo.scalaLogo = v; aggiorna(); }));
-      p.push(campo(tr("Scritta sul tappo"), inpTesto(cfg.tappo.testo, tr("es. Torniamo tra poco"),
-        v => { cfg.tappo.testo = v; aggiorna(); })));
-      p.push(cursore(tr("Dimensione della scritta"), cfg.tappo.scalaTesto, 40, 200, 5, " %",
-        v => { cfg.tappo.scalaTesto = v; aggiorna(); }));
+  p.push(el("h2", {textContent:tr("TAPPO")}));
+  const bt = el("div", {className:"bottoni"});
+  bt.append(el("button", {textContent:tr("Carica il logo…"), onclick: () =>
+    chiediFile("image/*", dati => { cfg.tappo.logo = dati; cfg.tappo.mostraLogo = true; aggiorna(); disegnaTema(); })}));
+  bt.append(el("button", {className:"quieto", textContent:tr("Rimetti il logo SAM"), onclick: () => {
+    cfg.tappo.logo = LOGO_SAM; aggiorna(); disegnaTema();
+  }}));
+  bt.append(el("button", {className:"quieto", textContent:tr("Togli il logo"), onclick: () => {
+    cfg.tappo.logo = LOGO_SEGNAPOSTO; aggiorna(); disegnaTema();
+  }}));
+  p.push(bt);
+  p.push(spunta(tr("Mostra il logo sul tappo"), cfg.tappo.mostraLogo,
+    v => { cfg.tappo.mostraLogo = v; aggiorna(); }));
+  p.push(cursore(tr("Dimensione del logo"), cfg.tappo.scalaLogo, 30, 220, 5, " %",
+    v => { cfg.tappo.scalaLogo = v; aggiorna(); }));
+  p.push(campo(tr("Scritta sul tappo"), inpTesto(cfg.tappo.testo, tr("es. Torniamo tra poco"),
+    v => { cfg.tappo.testo = v; aggiorna(); })));
+  p.push(cursore(tr("Dimensione della scritta"), cfg.tappo.scalaTesto, 40, 200, 5, " %",
+    v => { cfg.tappo.scalaTesto = v; aggiorna(); }));
 
-      p.push(el("h2", {textContent:tr("LOGO NELL'ANGOLO")}));
-      const ba = el("div", {className:"bottoni"});
-      ba.append(el("button", {textContent:tr("Carica…"), onclick: () =>
-        chiediFile("image/*", dati => { cfg.angolo.logo = dati; aggiorna(); })}));
-      ba.append(el("button", {className:"quieto", textContent:tr("Usa lo stesso del tappo"), onclick: () => {
-        cfg.angolo.logo = cfg.tappo.logo; aggiorna();
-      }}));
-      p.push(ba);
-      p.push(spunta(tr("Mostra il logo sulle slide"), cfg.angolo.mostra, v => { cfg.angolo.mostra = v; aggiorna(); }));
-      p.push(scelta(tr("Posizione"), {
-        "alto-destra":tr("In alto a destra"), "alto-sinistra":tr("In alto a sinistra"),
-        "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
-      }, cfg.angolo.posizione, v => { cfg.angolo.posizione = v; aggiorna(); }));
-      p.push(cursore(tr("Dimensione"), cfg.angolo.scala, 40, 260, 5, " %", v => { cfg.angolo.scala = v; aggiorna(); }));
+  p.push(el("h2", {textContent:tr("LOGO NELL'ANGOLO")}));
+  const ba = el("div", {className:"bottoni"});
+  ba.append(el("button", {textContent:tr("Carica…"), onclick: () =>
+    chiediFile("image/*", dati => { cfg.angolo.logo = dati; aggiorna(); })}));
+  ba.append(el("button", {className:"quieto", textContent:tr("Usa lo stesso del tappo"), onclick: () => {
+    cfg.angolo.logo = cfg.tappo.logo; aggiorna();
+  }}));
+  p.push(ba);
+  p.push(spunta(tr("Mostra il logo sulle slide"), cfg.angolo.mostra, v => { cfg.angolo.mostra = v; aggiorna(); }));
+  p.push(scelta(tr("Posizione"), {
+    "alto-destra":tr("In alto a destra"), "alto-sinistra":tr("In alto a sinistra"),
+    "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
+  }, cfg.angolo.posizione, v => { cfg.angolo.posizione = v; aggiorna(); }));
+  p.push(cursore(tr("Dimensione"), cfg.angolo.scala, 40, 260, 5, " %", v => { cfg.angolo.scala = v; aggiorna(); }));
 
-      p.push(el("h2", {textContent:tr("TIMER")}));
-      p.push(scelta(tr("Posizione sulle slide con le parole"), {
-        "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
-        "alto-destra":tr("In alto a destra"), "centro-basso":tr("In basso al centro"),
-      }, cfg.vista.timerPosizione, v => { cfg.vista.timerPosizione = v; aggiorna(); }));
-      p.push(cursore(tr("Dimensione"), cfg.vista.timerScala, 50, 180, 5, " %",
-        v => { cfg.vista.timerScala = v; aggiorna(); }));
-      p.push(cursore(tr("Cambia colore sotto i"), cfg.vista.sogliaGialla, 3, 60, 1, " s",
-        v => { cfg.vista.sogliaGialla = v; aggiorna(); }));
-      p.push(cursore(tr("Ultimi secondi sotto i"), cfg.vista.sogliaRossa, 1, 30, 1, " s",
-        v => { cfg.vista.sogliaRossa = v; aggiorna(); }));
+  p.push(el("h2", {textContent:tr("TIMER")}));
+  p.push(scelta(tr("Posizione sulle slide con le parole"), {
+    "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
+    "alto-destra":tr("In alto a destra"), "centro-basso":tr("In basso al centro"),
+  }, cfg.vista.timerPosizione, v => { cfg.vista.timerPosizione = v; aggiorna(); }));
+  p.push(cursore(tr("Dimensione"), cfg.vista.timerScala, 50, 180, 5, " %",
+    v => { cfg.vista.timerScala = v; aggiorna(); }));
+  p.push(cursore(tr("Cambia colore sotto i"), cfg.vista.sogliaGialla, 3, 60, 1, " s",
+    v => { cfg.vista.sogliaGialla = v; aggiorna(); }));
+  p.push(cursore(tr("Ultimi secondi sotto i"), cfg.vista.sogliaRossa, 1, 30, 1, " s",
+    v => { cfg.vista.sogliaRossa = v; aggiorna(); }));
 
-      p.push(el("h2", {textContent:tr("FINE ROUND, PER TUTTI I GIOCHI")}));
-      p.push(scelta(tr("Lo schermo esterno"), {tappo:tr("Torna al tappo"), resta:tr("Resta sull'ultima schermata")},
-        cfg.finale.schermo, v => { cfg.finale.schermo = v; segnaModifica(); }));
-      p.push(scelta(tr("Suono"), {nessuno:tr("Nessuno"), bip:tr("Bip"), campana:tr("Campana"), buzzer:tr("Buzzer")},
-        cfg.suono.tipo, v => { cfg.suono.tipo = v; suona(v, cfg.suono.volume); segnaModifica(); }));
-      p.push(cursore(tr("Volume"), cfg.suono.volume, 0, 100, 5, " %",
-        v => { cfg.suono.volume = v; segnaModifica(); }));
-      return p;
-    },
-  }));
+  p.push(el("h2", {textContent:tr("FINE ROUND, PER TUTTI I GIOCHI")}));
+  p.push(scelta(tr("Lo schermo esterno"), {tappo:tr("Torna al tappo"), resta:tr("Resta sull'ultima schermata")},
+    cfg.finale.schermo, v => { cfg.finale.schermo = v; segnaModifica(); }));
+  p.push(scelta(tr("Suono"), {nessuno:tr("Nessuno"), bip:tr("Bip"), campana:tr("Campana"), buzzer:tr("Buzzer")},
+    cfg.suono.tipo, v => { cfg.suono.tipo = v; suona(v, cfg.suono.volume); segnaModifica(); }));
+  p.push(cursore(tr("Volume"), cfg.suono.volume, 0, 100, 5, " %",
+    v => { cfg.suono.volume = v; segnaModifica(); }));
+  box.append(...inSchede(p));
+}
+
+/* spezza una lista di elementi in schede, una per ogni titolo h2 */
+function inSchede(lista){
+  const schede = [];
+  lista.forEach(e => {
+    if(e.tagName === "H2" || !schede.length) schede.push(el("section", {className:"scheda"}));
+    schede[schede.length-1].append(e);
+  });
+  return schede;
 }
 
 /* ---------------- squadre ---------------- */
@@ -238,55 +239,46 @@ function disegnaTema(){
 function disegnaRubrica(){
   const box = $("#rubricaBlocco");
   box.innerHTML = "";
-  box.append(blocco({
-    titolo: tr(cfg.rubrica.length === 1 ? "%s squadra" : "%s squadre", cfg.rubrica.length),
-    pallini: cfg.rubrica.map(s => s.colore),
-    sommario: cfg.rubrica.map(s => s.nome || "—").join(" · "),
-    aperto: apertoRubrica,
-    apri: () => { apertoRubrica = !apertoRubrica; disegnaRubrica(); },
-    corpo: () => {
-      const p = [];
-      cfg.rubrica.forEach((sq, i) => {
-        const d = el("div");
-        const riga = el("div", {className:"riga-squadra"});
-        const col = inpColore(sq.colore, v => { sq.colore = v; coloreCambiato(sq); });
-        const nome = inpTesto(sq.nome, tr("Nome squadra"), v => {
-          sq.nome = v;
-          if(live && live.squadraId === sq.id){ live.squadra = v; tappoSporco = true; dipingi(); disegnaRegia(); }
-          segnaModifica();
-        });
-        nome.onblur = () => { disegnaGiochi(); disegnaRubrica(); };
-        const via = el("button", {className:"quieto", textContent:"✕", title:tr("Elimina")});
-        via.onclick = () => {
-          if(cfg.rubrica.length <= 1) return;
-          cfg.rubrica.splice(i,1);
-          cfg.giochi.forEach(g => g.round.forEach(x => {
-            if(!squadraDi(x.squadraId) || x.squadraId === sq.id) x.squadraId = cfg.rubrica[0].id;
-          }));
-          disegnaRubrica(); disegnaGiochi(); segnaModifica();
-        };
-        riga.append(col, nome, via);
-        const tav = el("div", {className:"tavolozza"});
-        COLORI.forEach(c => {
-          const b = el("button", {title:c});
-          b.style.background = c;
-          b.onclick = () => { sq.colore = c; col.value = c; coloreCambiato(sq); };
-          tav.append(b);
-        });
-        d.append(riga, tav);
-        p.push(d);
-      });
-      const b = el("div", {className:"bottoni"});
-      b.style.marginTop = "12px";
-      b.append(el("button", {textContent:tr("Aggiungi squadra"), onclick: () => {
-        cfg.rubrica.push({id:nuovoId(), nome:tr("Squadra %s", cfg.rubrica.length+1),
-                          colore:COLORI[cfg.rubrica.length % COLORI.length]});
-        disegnaRubrica(); disegnaGiochi(); segnaModifica();
-      }}));
-      p.push(b);
-      return p;
-    },
-  }));
+  const p = [];
+  cfg.rubrica.forEach((sq, i) => {
+    const d = el("div");
+    const riga = el("div", {className:"riga-squadra"});
+    const col = inpColore(sq.colore, v => { sq.colore = v; coloreCambiato(sq); });
+    const nome = inpTesto(sq.nome, tr("Nome squadra"), v => {
+      sq.nome = v;
+      if(live && live.squadraId === sq.id){ live.squadra = v; tappoSporco = true; dipingi(); disegnaRegia(); }
+      segnaModifica();
+    });
+    nome.onblur = () => { disegnaGiochi(); disegnaRubrica(); };
+    const via = el("button", {className:"quieto", textContent:"✕", title:tr("Elimina")});
+    via.onclick = () => {
+      if(cfg.rubrica.length <= 1) return;
+      cfg.rubrica.splice(i,1);
+      cfg.giochi.forEach(g => g.round.forEach(x => {
+        if(!squadraDi(x.squadraId) || x.squadraId === sq.id) x.squadraId = cfg.rubrica[0].id;
+      }));
+      disegnaRubrica(); disegnaGiochi(); segnaModifica();
+    };
+    riga.append(col, nome, via);
+    const tav = el("div", {className:"tavolozza"});
+    COLORI.forEach(c => {
+      const b = el("button", {title:c});
+      b.style.background = c;
+      b.onclick = () => { sq.colore = c; col.value = c; coloreCambiato(sq); };
+      tav.append(b);
+    });
+    d.append(riga, tav);
+    p.push(d);
+  });
+  const b = el("div", {className:"bottoni"});
+  b.style.marginTop = "12px";
+  b.append(el("button", {textContent:tr("Aggiungi squadra"), onclick: () => {
+    cfg.rubrica.push({id:nuovoId(), nome:tr("Squadra %s", cfg.rubrica.length+1),
+                      colore:COLORI[cfg.rubrica.length % COLORI.length]});
+    disegnaRubrica(); disegnaGiochi(); segnaModifica();
+  }}));
+  p.push(b);
+  box.append(el("section", {className:"scheda"}, p));
 }
 
 function coloreCambiato(sq){
@@ -399,7 +391,7 @@ function schedaRound(g, gi, sc, ri){
     aperto: sc.aperto,
     apri: () => { sc.aperto = !sc.aperto; disegnaGiochi(); },
     azioni: [
-      bottoncino("▶", tr("Avvia questo round"), () => avviaRound(gi, ri)),
+      Object.assign(bottoncino("▶", tr("Avvia questo round"), () => avviaRound(gi, ri)), {className:"gioca"}),
       bottoncino("↑", tr("Sposta su"),  () => sposta(g.round, ri, -1), ri === 0),
       bottoncino("↓", tr("Sposta giù"), () => sposta(g.round, ri, 1),  ri === g.round.length-1),
       bottoncino("✕", tr("Elimina il round"), () => { g.round.splice(ri,1); disegnaGiochi(); segnaModifica(); }),
@@ -459,31 +451,23 @@ function schedaRound(g, gi, sc, ri){
 function disegnaTasti(){
   const box = $("#tastiBlocco");
   box.innerHTML = "";
-  box.append(blocco({
-    titolo: tr("Scorciatoie"),
-    sommario: FUNZIONI.map(f => nomeTasto(cfg.tasti[f[0]])).join(" "),
-    aperto: apertoTasti,
-    apri: () => { apertoTasti = !apertoTasti; disegnaTasti(); },
-    corpo: () => {
-      const t = el("table", {className:"tasti"});
-      for(const [chiave, etichetta] of FUNZIONI){
-        const riga = el("tr");
-        const td2 = el("td");
-        td2.style.textAlign = "right";
-        const b = el("button", {className:"quieto"});
-        const k = el("kbd");
-        if(inAscolto === chiave){ k.className = "ascolto"; k.textContent = tr("premi…"); }
-        else k.textContent = nomeTasto(cfg.tasti[chiave]);
-        b.append(k);
-        b.onclick = () => { inAscolto = inAscolto === chiave ? null : chiave; disegnaTasti(); };
-        td2.append(b);
-        riga.append(el("td", {textContent: tr(etichetta)}), td2);
-        t.append(riga);
-      }
-      return [t, el("p", {className:"nota",
-        textContent:tr("Attivi solo a round avviato, sia da qui che dalla finestra esterna. Clicca un tasto per rimapparlo.")})];
-    },
-  }));
+  const t = el("table", {className:"tasti"});
+  for(const [chiave, etichetta] of FUNZIONI){
+    const riga = el("tr");
+    const td2 = el("td");
+    td2.style.textAlign = "right";
+    const b = el("button", {className:"quieto"});
+    const k = el("kbd");
+    if(inAscolto === chiave){ k.className = "ascolto"; k.textContent = tr("premi…"); }
+    else k.textContent = nomeTasto(cfg.tasti[chiave]);
+    b.append(k);
+    b.onclick = () => { inAscolto = inAscolto === chiave ? null : chiave; disegnaTasti(); };
+    td2.append(b);
+    riga.append(el("td", {textContent: tr(etichetta)}), td2);
+    t.append(riga);
+  }
+  box.append(el("section", {className:"scheda"}, t, el("p", {className:"nota",
+    textContent:tr("Attivi solo a round avviato, sia da qui che dalla finestra esterna. Clicca un tasto per rimapparlo.")})));
 }
 
 /* ---------------- salvataggio dentro il file stesso ---------------- */
@@ -518,6 +502,7 @@ function generaHTML(){
     if(e) e.innerHTML = "";
   });
   clone.querySelectorAll(".avviso").forEach(e => { e.innerHTML = ""; e.setAttribute("hidden",""); });
+  clone.querySelectorAll("details").forEach(d => d.removeAttribute("open"));
   const f = clone.querySelector("#fontUtente");
   if(f) f.remove();
   const o = clone.querySelector("#ora"); if(o) o.textContent = "—";
@@ -617,6 +602,21 @@ $("#selLingua").onchange = e => {
   segnaModifica();
 };
 
+function mostraPannello(id){
+  document.querySelectorAll("[data-pannello]").forEach(b => {
+    const on = b.dataset.pannello === id;
+    b.setAttribute("aria-selected", on);
+    $("#" + b.dataset.pannello).hidden = !on;
+  });
+}
+document.querySelectorAll("[data-pannello]").forEach(b => { b.onclick = () => mostraPannello(b.dataset.pannello); });
+
+/* il menu Altro si chiude dopo una scelta o con un clic fuori */
+document.addEventListener("click", e => {
+  const m = $(".menu");
+  if(!m.contains(e.target) || e.target.closest(".menuTendina")) m.open = false;
+});
+
 $("#btnApri").onclick = apriFinestra;
 $("#btnChiudi").onclick = chiudiFinestra;
 $("#btnNuovoGioco").onclick = () => {
@@ -662,6 +662,7 @@ $("#cEsatto").onkeydown = e => { if(e.key === "Enter") $("#cImponi").click(); };
   traduciPagina();
   aggiornaLink();
 
+  mostraPannello("pGiochi");
   agganciaSchermo($("#anteprima"), document);
   disegnaTema(); disegnaRubrica(); disegnaGiochi(); disegnaTasti(); disegnaRegia(); dipingi();
   new ResizeObserver(scalaTutti).observe($("#anteprima"));

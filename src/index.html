@@ -3,77 +3,76 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Regia — timer e parole per giochi dal vivo</title>
+<title>Q.I.Z — timer e parole per giochi dal vivo</title>
 <meta name="description" content="Timer e schermate per giochi a squadre dal vivo: regia su un monitor, proiezione sull'altro. Funziona offline, in un file solo.">
 <style id="stileRegia">__CSS_REGIA__</style>
 <style id="stileSchermo">__CSS_SCHERMO__</style>
 </head>
 <body>
 
+<header class="barraAlta">
+  <div class="marchio">Q.I.Z <span class="versione">__VERSIONE__</span></div>
+  <p class="nota" id="notaSalva"></p>
+  <button class="forte" id="btnSalva" data-t="Salva">Salva</button>
+  <details class="menu">
+    <summary data-t="Altro">Altro</summary>
+    <div class="menuTendina">
+      <button id="btnScaricaCopia" data-t="Scarica una copia">Scarica una copia</button>
+      <button id="btnImporta" data-t="Riprendi da un file">Riprendi da un file</button>
+      <a id="linkIstruzioni" href="__REPO__" target="_blank" rel="noopener" data-t="Istruzioni passo passo">Istruzioni passo passo</a>
+    </div>
+  </details>
+  <select id="selLingua" title="Lingua / Language">
+    <option value="it">Italiano</option>
+    <option value="en">English</option>
+  </select>
+</header>
+
 <div class="colonna" id="colonnaSinistra">
-  <div class="testaColonna">
-    <h1 data-t="Preparazione">Preparazione</h1>
-    <select id="selLingua" title="Lingua / Language">
-      <option value="it">Italiano</option>
-      <option value="en">English</option>
-    </select>
-  </div>
+  <h1 data-t="Preparazione">Preparazione</h1>
 
   <div id="avvisoRecupero" class="avviso" hidden></div>
   <div id="avvisoPopup" class="avviso" hidden></div>
 
-  <h2 data-t="Schermo esterno">Schermo esterno</h2>
-  <div class="scheda">
-    <div class="bottoni">
-      <button class="forte" id="btnApri" data-t="Apri schermo esterno">Apri schermo esterno</button>
-      <button id="btnChiudi" data-t="Chiudi">Chiudi</button>
-    </div>
-    <p class="nota" data-t="Trascina la finestra sul secondo monitor, poi premi F lì dentro per il pieno schermo.">Trascina la finestra sul secondo monitor, poi premi F lì dentro per il pieno schermo.</p>
-  </div>
+  <nav class="linguette" role="tablist">
+    <button role="tab" data-pannello="pGiochi" data-t="Giochi">Giochi</button>
+    <button role="tab" data-pannello="pSquadre" data-t="Squadre">Squadre</button>
+    <button role="tab" data-pannello="pAspetto" data-t="Aspetto">Aspetto</button>
+    <button role="tab" data-pannello="pTasti" data-t="Tasti">Tasti</button>
+  </nav>
 
-  <h2 data-t="Aspetto">Aspetto</h2>
-  <div id="temaBlocco"></div>
-
-  <h2 data-t="Squadre">Squadre</h2>
-  <div id="rubricaBlocco"></div>
-
-  <h2 data-t="Giochi">Giochi</h2>
-  <div id="giochi"></div>
-  <div class="bottoni"><button id="btnNuovoGioco" data-t="Aggiungi gioco">Aggiungi gioco</button></div>
-
-  <h2 data-t="Tasti">Tasti</h2>
-  <div id="tastiBlocco"></div>
-
-  <h2 data-t="Il tuo file">Il tuo file</h2>
-  <div class="scheda">
-    <div class="bottoni">
-      <button class="forte" id="btnSalva" data-t="Salva">Salva</button>
-      <button id="btnScaricaCopia" data-t="Scarica una copia">Scarica una copia</button>
-      <button id="btnImporta" data-t="Riprendi da un file">Riprendi da un file</button>
-    </div>
-    <p class="nota" id="notaSalva"></p>
-    <p class="versione">
-      <a id="linkIstruzioni" href="__REPO__" target="_blank" rel="noopener" data-t="Istruzioni passo passo">Istruzioni passo passo</a>
-      · <span data-t="Versione">Versione</span> __VERSIONE__
-    </p>
-  </div>
+  <section class="pannello" id="pGiochi" role="tabpanel">
+    <div id="giochi"></div>
+    <button class="aggiungi" id="btnNuovoGioco" data-t="Aggiungi gioco">Aggiungi gioco</button>
+  </section>
+  <section class="pannello" id="pSquadre" role="tabpanel" hidden><div id="rubricaBlocco"></div></section>
+  <section class="pannello" id="pAspetto" role="tabpanel" hidden><div id="temaBlocco"></div></section>
+  <section class="pannello" id="pTasti" role="tabpanel" hidden><div id="tastiBlocco"></div></section>
 </div>
 
 <div class="colonna" id="colonnaDestra">
+  <div class="testaColonna">
+    <h1 data-t="In diretta">In diretta</h1>
+    <button id="btnApri" data-t="Apri schermo esterno">Apri schermo esterno</button>
+    <button class="quieto" id="btnChiudi" data-t="Chiudi">Chiudi</button>
+  </div>
+  <p class="nota suggerimento" data-t="Trascina la finestra sul secondo monitor, poi premi F lì dentro per il pieno schermo.">Trascina la finestra sul secondo monitor, poi premi F lì dentro per il pieno schermo.</p>
+
   <div class="live">
-    <h1 data-t="Regia">Regia</h1>
     <div class="stato" id="stato">
-      <span class="chi" id="statoChi">Nessun round attivo</span>
-      <span class="tempo" id="statoTempo">--:--</span>
-      <span class="nota" id="statoNota">Avvia un round dalla colonna a sinistra</span>
+      <div>
+        <div class="chi" id="statoChi">Nessun round attivo</div>
+        <div class="nota" id="statoNota">Avvia un round dalla colonna a sinistra</div>
+      </div>
+      <div class="tempo" id="statoTempo">--:--</div>
     </div>
-    <div class="bottoni" style="margin-bottom:12px">
+    <div class="comandi">
       <button class="forte" id="cAvvia" disabled>Avvia</button>
-      <button id="cReset" disabled>Azzera</button>
       <button id="cIndietro" disabled>Indietro</button>
       <button id="cAvanti" disabled>Avanti</button>
       <button id="cInizio" disabled>Inizio</button>
       <button id="cTappo" disabled>Tappo</button>
+      <button id="cReset" disabled>Azzera</button>
       <button id="cFine" disabled>Chiudi round</button>
     </div>
     <div class="correggi">
@@ -87,15 +86,17 @@
     </div>
   </div>
 
-  <div class="corrente">
-    <div class="ora" id="ora">—</div>
-    <div class="poi" id="poi"></div>
+  <div class="palco">
+    <div class="anteprima" id="anteprima"></div>
+    <div>
+      <div class="corrente">
+        <div class="ora" id="ora">—</div>
+        <div class="poi" id="poi"></div>
+      </div>
+      <h2 data-t="Scaletta">Scaletta</h2>
+      <ol class="voci" id="voci"></ol>
+    </div>
   </div>
-
-  <div class="anteprima" id="anteprima"></div>
-
-  <h2 data-t="Scaletta">Scaletta</h2>
-  <ol class="voci" id="voci"></ol>
 </div>
 
 <script type="application/json" id="configurazione">__CONFIG__</script>

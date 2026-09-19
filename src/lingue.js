@@ -19,6 +19,8 @@ const LINGUE = {
     "Scarica una copia":"Download a copy",
     "Riprendi da un file":"Load from a file",
     "Regia":"Control",
+    "In diretta":"Live",
+    "Altro":"More",
     "Correggi il tempo":"Adjust the time",
     "Imposta":"Set",
     "Scaletta":"Running order",
@@ -55,7 +57,6 @@ const LINGUE = {
     "Chiudi round":"End round",
 
     /* scorciatoie */
-    "Scorciatoie":"Shortcuts",
     "Avvia / ferma il tempo":"Start / stop the clock",
     "Azzera il tempo":"Reset the clock",
     "Aggiungi 5 secondi":"Add 5 seconds",
@@ -70,7 +71,6 @@ const LINGUE = {
     "Invio":"Enter",
 
     /* tema */
-    "Tema e loghi":"Theme and logos",
     "COLORI":"COLOURS",
     "Sfondo":"Background",
     "Testo":"Text",
@@ -88,8 +88,6 @@ const LINGUE = {
     "Carica un font…":"Load a font…",
     "Torna al carattere base":"Back to the built-in typeface",
     "In uso: %s":"In use: %s",
-    "carattere base":"built-in typeface",
-    "onde":"waves",
     "Dimensione massima delle parole":"Maximum size of the words",
     "Spessore":"Weight",
     "Spaziatura tra le lettere":"Letter spacing",
@@ -131,8 +129,6 @@ const LINGUE = {
     "Volume":"Volume",
 
     /* squadre */
-    "%s squadra":"%s team",
-    "%s squadre":"%s teams",
     "Nome squadra":"Team name",
     "Aggiungi squadra":"Add team",
     "Elimina":"Delete",
@@ -228,6 +224,6 @@ function traduciPagina(){
   document.querySelectorAll("[data-t]").forEach(e => { e.textContent = tr(e.dataset.t); });
   document.querySelectorAll("[data-tp]").forEach(e => { e.placeholder = tr(e.dataset.tp); });
   document.title = linguaAttiva() === "en"
-    ? "ControQuiz — timer and words for live games"
-    : "ControQuiz — timer e parole per giochi dal vivo";
+    ? "Q.I.Z — timer and words for live games"
+    : "Q.I.Z — timer e parole per giochi dal vivo";
 }

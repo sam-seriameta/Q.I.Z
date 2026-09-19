@@ -58,7 +58,6 @@ function configBase(){
 
 let cfg = configBase();
 let live = null;
-let apertoTema = false, apertoRubrica = false, apertoTasti = false;
 let tappoSporco = true, fontSporco = true;
 
 const finestre = {esterna:null};

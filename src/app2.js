@@ -293,14 +293,14 @@ function disegnaRegia(){
                    "cMeno","cMeno5","cPiu5","cPiu","cEsatto","cImponi"];
   bottoni.forEach(id => { $("#"+id).disabled = !attivo; });
 
-  const et = (f, t) => nomeTasto(cfg.tasti[f]) + " · " + t;
-  $("#cAvvia").textContent    = et("avviaFerma", attivo && r.inCorsa ? tr("Ferma") : tr("Avvia"));
-  $("#cReset").textContent    = et("reset", tr("Azzera"));
-  $("#cIndietro").textContent = et("indietro", tr("Indietro"));
-  $("#cAvanti").textContent   = et("avanti", tr("Avanti"));
-  $("#cInizio").textContent   = et("inizio", tr("Inizio"));
-  $("#cTappo").textContent    = et("tappo", tr("Tappo"));
-  $("#cFine").textContent     = et("fine", tr("Chiudi round"));
+  const et = (id, f, t) => $("#"+id).replaceChildren(t, el("kbd", {textContent:nomeTasto(cfg.tasti[f])}));
+  et("cAvvia", "avviaFerma", attivo && r.inCorsa ? tr("Ferma") : tr("Avvia"));
+  et("cReset", "reset", tr("Azzera"));
+  et("cIndietro", "indietro", tr("Indietro"));
+  et("cAvanti", "avanti", tr("Avanti"));
+  et("cInizio", "inizio", tr("Inizio"));
+  et("cTappo", "tappo", tr("Tappo"));
+  et("cFine", "fine", tr("Chiudi round"));
 
   const solo = attivo && r.template === "timer";
   ["cIndietro","cAvanti","cInizio"].forEach(id => { if(solo) $("#"+id).disabled = true; });
