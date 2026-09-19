@@ -323,6 +323,11 @@ function disegnaTema(){
   }, cfg.angolo.posizione, v => { cfg.angolo.posizione = v; aggiorna(); }), "posizione"));
   p.push(G("angolo", cursore(tr("Dimensione"), cfg.angolo.scala, 40, 260, 5, " %", v => { cfg.angolo.scala = v; aggiorna(); }), "scala"));
 
+  p.push(el("h2", {textContent:tr("NOME DELLA SQUADRA")}));
+  p.push(G("vista", scelta(tr("Posizione prima che parta il round"), {
+    sinistra:tr("A sinistra"), centro:tr("Al centro"), destra:tr("A destra"),
+  }, cfg.vista.targa, v => { cfg.vista.targa = v; aggiorna(); }), "targa"));
+
   p.push(el("h2", {textContent:tr("TIMER")}));
   p.push(G("vista", scelta(tr("Posizione sulle slide con le parole"), {
     "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
@@ -538,14 +543,14 @@ function disegnaGiochi(){
 }
 
 function schedaRound(g, gi, sc, ri){
-  const sq = squadraDi(sc.squadraId);
+  const sq = sc.squadraId ? squadraDi(sc.squadraId) : null;
   const tpl = templateDi(g, sc);
   const n = vociDi(sc.voci).length;
   const riassunto = scriviTempo(sc.secondi) + " · " +
     (tpl === "timer" ? tr("solo timer") : tr(n === 1 ? "%s voce" : "%s voci", n));
 
   return blocco({
-    titolo: sq ? sq.nome : "—",
+    titolo: sq ? sq.nome : tr("Nessuna squadra"),
     colore: sq ? sq.colore : "transparent",
     sommario: riassunto,
     aperto: sc.aperto,
@@ -560,6 +565,7 @@ function schedaRound(g, gi, sc, ri){
       const p = [];
       const duo = el("div", {className:"duo"});
       const s = el("select");
+      s.append(el("option", {value:"", textContent:tr("Nessuna squadra (colori del tema)"), selected:!sc.squadraId}));
       cfg.rubrica.forEach(x => {
         const o = el("option", {value:x.id, textContent:x.nome || tr("Senza nome")});
         if(x.id === sc.squadraId) o.selected = true;
@@ -727,24 +733,28 @@ function temaCompleto(t){
   return Object.assign(base, t || {}, {font: Object.assign(base.font, (t || {}).font || {})});
 }
 
-function applicaConfig(nuovo){
-  impostaLingua(nuovo.lingua || linguaAttiva());
+/* la configurazione salvata sopra quella di base: i campi aggiunti dopo prendono il valore di base */
+function unisciConfig(nuovo){
   const base = configBase();
-  cfg = Object.assign(base, nuovo);
-  cfg.tema = temaCompleto(nuovo.tema);
-  cfg.tappo = Object.assign(base.tappo, nuovo.tappo || {});
-  cfg.angolo = Object.assign(base.angolo, nuovo.angolo || {});
-  cfg.vista = Object.assign(base.vista, nuovo.vista || {});
-  cfg.suono = Object.assign(base.suono, nuovo.suono || {});
-  cfg.finale = Object.assign(base.finale, nuovo.finale || {});
-  cfg.tasti = Object.assign(base.tasti, nuovo.tasti || {});
-  if(!Array.isArray(cfg.rubrica) || !cfg.rubrica.length) cfg.rubrica = base.rubrica;
-  if(!Array.isArray(cfg.giochi) || !cfg.giochi.length) cfg.giochi = base.giochi;
-  cfg.giochi.forEach(g => {
+  const c = Object.assign({}, base, nuovo);
+  c.tema = temaCompleto(nuovo.tema);
+  for(const k of ["tappo", "angolo", "vista", "suono", "finale", "tasti"]) c[k] = Object.assign(base[k], nuovo[k] || {});
+  if(!Array.isArray(c.suoniUtente)) c.suoniUtente = [];
+  if(!Array.isArray(c.rubrica) || !c.rubrica.length) c.rubrica = base.rubrica;
+  if(!Array.isArray(c.giochi) || !c.giochi.length) c.giochi = base.giochi;
+  c.giochi.forEach(g => {
     if(!Array.isArray(g.round)) g.round = [];
     if(g.tema) g.tema = temaCompleto(g.tema);
-    g.round.forEach(x => { if(!squadraDi(x.squadraId)) x.squadraId = cfg.rubrica[0].id; });
+    g.round.forEach(x => {
+      if(x.squadraId && !c.rubrica.some(s => s.id === x.squadraId)) x.squadraId = c.rubrica[0].id;
+    });
   });
+  return c;
+}
+
+function applicaConfig(nuovo){
+  impostaLingua(nuovo.lingua || linguaAttiva());
+  cfg = unisciConfig(nuovo);
   live = null;
   tappoSporco = fontSporco = true;
   cfg.lingua = linguaAttiva();
@@ -824,7 +834,7 @@ $("#cEsatto").onkeydown = e => { if(e.key === "Enter") $("#cImponi").click(); };
     const dentro = JSON.parse(document.getElementById("configurazione").textContent);
     if(dentro && dentro.versione){
       impostaLingua(dentro.lingua || LINGUA);
-      applicaConfigSilenzioso(dentro);
+      cfg = unisciConfig(dentro);
       if(dentro.salvatoIl) salvata = structuredClone(cfg);
     }
   }catch(e){}
@@ -856,16 +866,3 @@ $("#cEsatto").onkeydown = e => { if(e.key === "Enter") $("#cImponi").click(); };
     nota(tr("Su questo browser il pulsante Salva scarica un file nuovo da mettere al posto del vecchio."));
   }
 })();
-
-function applicaConfigSilenzioso(nuovo){
-  const base = configBase();
-  cfg = Object.assign(base, nuovo);
-  cfg.tema = temaCompleto(nuovo.tema);
-  if(Array.isArray(cfg.giochi)) cfg.giochi.forEach(g => { if(g.tema) g.tema = temaCompleto(g.tema); });
-  cfg.tappo = Object.assign(base.tappo, nuovo.tappo || {});
-  cfg.angolo = Object.assign(base.angolo, nuovo.angolo || {});
-  cfg.vista = Object.assign(base.vista, nuovo.vista || {});
-  cfg.suono = Object.assign(base.suono, nuovo.suono || {});
-  cfg.finale = Object.assign(base.finale, nuovo.finale || {});
-  cfg.tasti = Object.assign(base.tasti, nuovo.tasti || {});
-}

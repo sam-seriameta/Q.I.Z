@@ -66,8 +66,9 @@
 .schermo.senzaAngolo .marchio-angolo{display:none}
 
 /* ---------- targa squadra ---------- */
-.targa{position:absolute;left:62px;top:60px;display:flex;align-items:center}
-.schermo[data-angolo="alto-sinistra"] .targa{left:auto;right:62px}
+.targa{position:absolute;left:62px;right:62px;top:60px;display:flex;align-items:center;justify-content:center}
+.schermo[data-targa=sinistra] .targa{justify-content:flex-start}
+.schermo[data-targa=destra] .targa{justify-content:flex-end}
 .targa b{background:var(--squadra);color:var(--sfondo,#F4F2EE);font-weight:400;
   font-size:34px;line-height:1;padding:13px 26px 11px;border-radius:999px;
   text-transform:var(--maiuscolo,none)}

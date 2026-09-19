@@ -75,14 +75,14 @@ function suonoDi(g){
 function avviaRound(gi, ri){
   const g = cfg.giochi[gi];
   const sc = g.round[ri];
-  const sq = squadraDi(sc.squadraId);
+  const sq = sc.squadraId ? squadraDi(sc.squadraId) : null;  // "" = round senza squadra
   const ms = Math.max(1, sc.secondi) * 1000;
   live = {
     gi, ri,
-    squadraId: sq.id,
+    squadraId: sq ? sq.id : "",
     gioco: g.nome,
-    squadra: sq.nome || tr("Squadra"),
-    colore: sq.colore,
+    squadra: sq ? sq.nome || tr("Squadra") : "",
+    colore: sq ? sq.colore : "",
     template: templateDi(g, sc),
     timerRisposta: g.timerRisposta || "continua",
     finale: finaleDi(g),
@@ -275,9 +275,9 @@ function disegnaRegia(){
   const r = live;
   const attivo = !!r;
 
-  $("#stato").style.borderLeftColor = attivo ? r.colore : "var(--riga)";
+  $("#stato").style.borderLeftColor = attivo && r.colore || (attivo ? "var(--acc)" : "var(--riga)");
   $("#statoChi").textContent = !attivo ? tr("Nessun round attivo")
-    : (r.gioco ? r.gioco + " · " : "") + r.squadra;
+    : [r.gioco, r.squadra].filter(Boolean).join(" · ");
   $("#statoTempo").textContent = attivo ? mmss(r.restoMs) : "--:--";
   $("#statoTempo").className = "tempo" + (!attivo ? ""
     : r.restoMs/1000 <= cfg.vista.sogliaRossa ? " finito"
@@ -324,7 +324,7 @@ function disegnaRegia(){
     r.elenco.forEach((x, i) => {
       const li = document.createElement("li");
       li.className = i === r.indice ? "viva" : i < r.indice ? "passata" : "";
-      if(i === r.indice) li.style.background = r.colore;
+      if(i === r.indice) li.style.background = r.colore || "var(--acc)";
       const n = document.createElement("span"); n.className = "n"; n.textContent = i+1;
       const d = document.createElement("span"); d.textContent = x.d;
       li.append(n, d);

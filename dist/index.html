@@ -249,8 +249,9 @@ ol.voci li.viva .ris{color:#fffc}
 .schermo.senzaAngolo .marchio-angolo{display:none}
 
 /* ---------- targa squadra ---------- */
-.targa{position:absolute;left:62px;top:60px;display:flex;align-items:center}
-.schermo[data-angolo="alto-sinistra"] .targa{left:auto;right:62px}
+.targa{position:absolute;left:62px;right:62px;top:60px;display:flex;align-items:center;justify-content:center}
+.schermo[data-targa=sinistra] .targa{justify-content:flex-start}
+.schermo[data-targa=destra] .targa{justify-content:flex-end}
 .targa b{background:var(--squadra);color:var(--sfondo,#F4F2EE);font-weight:400;
   font-size:34px;line-height:1;padding:13px 26px 11px;border-radius:999px;
   text-transform:var(--maiuscolo,none)}
@@ -535,6 +536,13 @@ const LINGUE = {
     "Buzzer":"Buzzer",
     "Colpo di scena":"Dramatic hit",
     "Conto alla rovescia":"Countdown",
+    "Nessuna squadra":"No team",
+    "Nessuna squadra (colori del tema)":"No team (theme colours)",
+    "NOME DELLA SQUADRA":"TEAM NAME",
+    "Posizione prima che parta il round":"Position before the round starts",
+    "A sinistra":"Left",
+    "Al centro":"Centre",
+    "A destra":"Right",
     "I TUOI SUONI":"YOUR SOUNDS",
     "Nome del suono":"Sound name",
     "Ascolta":"Listen",
@@ -740,7 +748,7 @@ function configBase(){
     },
     tappo:  {logo:LOGO_SAM, mostraLogo:true, scalaLogo:145, testo:"", scalaTesto:100},
     angolo: {logo:LOGO_SAM, mostra:false, scala:100, posizione:"alto-destra"},
-    vista:  {timerPosizione:"basso-destra", timerScala:100, sogliaGialla:10, sogliaRossa:5},
+    vista:  {targa:"centro", timerPosizione:"basso-destra", timerScala:100, sogliaGialla:10, sogliaRossa:5},
     suono:  {tipo:"campana", volume:60},
     finale: {schermo:"tappo"},
     tasti:  Object.fromEntries(FUNZIONI.map(f => [f[0], f[2]])),
@@ -1043,6 +1051,7 @@ function dipingi(){
     el.dataset.fase = fase;
     el.dataset.angolo = cfg.angolo.posizione;
     el.dataset.timer = cfg.vista.timerPosizione;
+    el.dataset.targa = cfg.vista.targa;
     el.classList.toggle("avviso", !!avviso);
     el.classList.toggle("allarme", !!allarme);
     el.classList.toggle("finito", !!finito);
@@ -1069,12 +1078,12 @@ function dipingi(){
     st.setProperty("--spaziatura", (t.font.spaziatura / 100) + "em");
     st.setProperty("--carattere", t.font.dati ? "Utente" : "TitoloBase");
 
-    if(fase === "tappo" && !(r && r.mostraFinale)){
+    if(!r || !r.colore || (fase === "tappo" && !r.mostraFinale)){
       const c = t.ondeColori;
       st.setProperty("--g1", c[0]); st.setProperty("--g2", c[1]);
       st.setProperty("--g3", c[2]); st.setProperty("--g4", c[3]);
       st.setProperty("--squadra", c[1]);
-    } else if(r){
+    } else {
       const c = r.colore;
       st.setProperty("--squadra", c);
       st.setProperty("--g1", mescola(c, t.testo, .30));
@@ -1196,14 +1205,14 @@ function suonoDi(g){
 function avviaRound(gi, ri){
   const g = cfg.giochi[gi];
   const sc = g.round[ri];
-  const sq = squadraDi(sc.squadraId);
+  const sq = sc.squadraId ? squadraDi(sc.squadraId) : null;  // "" = round senza squadra
   const ms = Math.max(1, sc.secondi) * 1000;
   live = {
     gi, ri,
-    squadraId: sq.id,
+    squadraId: sq ? sq.id : "",
     gioco: g.nome,
-    squadra: sq.nome || tr("Squadra"),
-    colore: sq.colore,
+    squadra: sq ? sq.nome || tr("Squadra") : "",
+    colore: sq ? sq.colore : "",
     template: templateDi(g, sc),
     timerRisposta: g.timerRisposta || "continua",
     finale: finaleDi(g),
@@ -1396,9 +1405,9 @@ function disegnaRegia(){
   const r = live;
   const attivo = !!r;
 
-  $("#stato").style.borderLeftColor = attivo ? r.colore : "var(--riga)";
+  $("#stato").style.borderLeftColor = attivo && r.colore || (attivo ? "var(--acc)" : "var(--riga)");
   $("#statoChi").textContent = !attivo ? tr("Nessun round attivo")
-    : (r.gioco ? r.gioco + " · " : "") + r.squadra;
+    : [r.gioco, r.squadra].filter(Boolean).join(" · ");
   $("#statoTempo").textContent = attivo ? mmss(r.restoMs) : "--:--";
   $("#statoTempo").className = "tempo" + (!attivo ? ""
     : r.restoMs/1000 <= cfg.vista.sogliaRossa ? " finito"
@@ -1445,7 +1454,7 @@ function disegnaRegia(){
     r.elenco.forEach((x, i) => {
       const li = document.createElement("li");
       li.className = i === r.indice ? "viva" : i < r.indice ? "passata" : "";
-      if(i === r.indice) li.style.background = r.colore;
+      if(i === r.indice) li.style.background = r.colore || "var(--acc)";
       const n = document.createElement("span"); n.className = "n"; n.textContent = i+1;
       const d = document.createElement("span"); d.textContent = x.d;
       li.append(n, d);
@@ -1787,6 +1796,11 @@ function disegnaTema(){
   }, cfg.angolo.posizione, v => { cfg.angolo.posizione = v; aggiorna(); }), "posizione"));
   p.push(G("angolo", cursore(tr("Dimensione"), cfg.angolo.scala, 40, 260, 5, " %", v => { cfg.angolo.scala = v; aggiorna(); }), "scala"));
 
+  p.push(el("h2", {textContent:tr("NOME DELLA SQUADRA")}));
+  p.push(G("vista", scelta(tr("Posizione prima che parta il round"), {
+    sinistra:tr("A sinistra"), centro:tr("Al centro"), destra:tr("A destra"),
+  }, cfg.vista.targa, v => { cfg.vista.targa = v; aggiorna(); }), "targa"));
+
   p.push(el("h2", {textContent:tr("TIMER")}));
   p.push(G("vista", scelta(tr("Posizione sulle slide con le parole"), {
     "basso-destra":tr("In basso a destra"), "basso-sinistra":tr("In basso a sinistra"),
@@ -2002,14 +2016,14 @@ function disegnaGiochi(){
 }
 
 function schedaRound(g, gi, sc, ri){
-  const sq = squadraDi(sc.squadraId);
+  const sq = sc.squadraId ? squadraDi(sc.squadraId) : null;
   const tpl = templateDi(g, sc);
   const n = vociDi(sc.voci).length;
   const riassunto = scriviTempo(sc.secondi) + " · " +
     (tpl === "timer" ? tr("solo timer") : tr(n === 1 ? "%s voce" : "%s voci", n));
 
   return blocco({
-    titolo: sq ? sq.nome : "—",
+    titolo: sq ? sq.nome : tr("Nessuna squadra"),
     colore: sq ? sq.colore : "transparent",
     sommario: riassunto,
     aperto: sc.aperto,
@@ -2024,6 +2038,7 @@ function schedaRound(g, gi, sc, ri){
       const p = [];
       const duo = el("div", {className:"duo"});
       const s = el("select");
+      s.append(el("option", {value:"", textContent:tr("Nessuna squadra (colori del tema)"), selected:!sc.squadraId}));
       cfg.rubrica.forEach(x => {
         const o = el("option", {value:x.id, textContent:x.nome || tr("Senza nome")});
         if(x.id === sc.squadraId) o.selected = true;
@@ -2191,24 +2206,28 @@ function temaCompleto(t){
   return Object.assign(base, t || {}, {font: Object.assign(base.font, (t || {}).font || {})});
 }
 
-function applicaConfig(nuovo){
-  impostaLingua(nuovo.lingua || linguaAttiva());
+/* la configurazione salvata sopra quella di base: i campi aggiunti dopo prendono il valore di base */
+function unisciConfig(nuovo){
   const base = configBase();
-  cfg = Object.assign(base, nuovo);
-  cfg.tema = temaCompleto(nuovo.tema);
-  cfg.tappo = Object.assign(base.tappo, nuovo.tappo || {});
-  cfg.angolo = Object.assign(base.angolo, nuovo.angolo || {});
-  cfg.vista = Object.assign(base.vista, nuovo.vista || {});
-  cfg.suono = Object.assign(base.suono, nuovo.suono || {});
-  cfg.finale = Object.assign(base.finale, nuovo.finale || {});
-  cfg.tasti = Object.assign(base.tasti, nuovo.tasti || {});
-  if(!Array.isArray(cfg.rubrica) || !cfg.rubrica.length) cfg.rubrica = base.rubrica;
-  if(!Array.isArray(cfg.giochi) || !cfg.giochi.length) cfg.giochi = base.giochi;
-  cfg.giochi.forEach(g => {
+  const c = Object.assign({}, base, nuovo);
+  c.tema = temaCompleto(nuovo.tema);
+  for(const k of ["tappo", "angolo", "vista", "suono", "finale", "tasti"]) c[k] = Object.assign(base[k], nuovo[k] || {});
+  if(!Array.isArray(c.suoniUtente)) c.suoniUtente = [];
+  if(!Array.isArray(c.rubrica) || !c.rubrica.length) c.rubrica = base.rubrica;
+  if(!Array.isArray(c.giochi) || !c.giochi.length) c.giochi = base.giochi;
+  c.giochi.forEach(g => {
     if(!Array.isArray(g.round)) g.round = [];
     if(g.tema) g.tema = temaCompleto(g.tema);
-    g.round.forEach(x => { if(!squadraDi(x.squadraId)) x.squadraId = cfg.rubrica[0].id; });
+    g.round.forEach(x => {
+      if(x.squadraId && !c.rubrica.some(s => s.id === x.squadraId)) x.squadraId = c.rubrica[0].id;
+    });
   });
+  return c;
+}
+
+function applicaConfig(nuovo){
+  impostaLingua(nuovo.lingua || linguaAttiva());
+  cfg = unisciConfig(nuovo);
   live = null;
   tappoSporco = fontSporco = true;
   cfg.lingua = linguaAttiva();
@@ -2288,7 +2307,7 @@ $("#cEsatto").onkeydown = e => { if(e.key === "Enter") $("#cImponi").click(); };
     const dentro = JSON.parse(document.getElementById("configurazione").textContent);
     if(dentro && dentro.versione){
       impostaLingua(dentro.lingua || LINGUA);
-      applicaConfigSilenzioso(dentro);
+      cfg = unisciConfig(dentro);
       if(dentro.salvatoIl) salvata = structuredClone(cfg);
     }
   }catch(e){}
@@ -2320,19 +2339,6 @@ $("#cEsatto").onkeydown = e => { if(e.key === "Enter") $("#cImponi").click(); };
     nota(tr("Su questo browser il pulsante Salva scarica un file nuovo da mettere al posto del vecchio."));
   }
 })();
-
-function applicaConfigSilenzioso(nuovo){
-  const base = configBase();
-  cfg = Object.assign(base, nuovo);
-  cfg.tema = temaCompleto(nuovo.tema);
-  if(Array.isArray(cfg.giochi)) cfg.giochi.forEach(g => { if(g.tema) g.tema = temaCompleto(g.tema); });
-  cfg.tappo = Object.assign(base.tappo, nuovo.tappo || {});
-  cfg.angolo = Object.assign(base.angolo, nuovo.angolo || {});
-  cfg.vista = Object.assign(base.vista, nuovo.vista || {});
-  cfg.suono = Object.assign(base.suono, nuovo.suono || {});
-  cfg.finale = Object.assign(base.finale, nuovo.finale || {});
-  cfg.tasti = Object.assign(base.tasti, nuovo.tasti || {});
-}
 </script>
 </body>
 </html>

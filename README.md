@@ -25,9 +25,11 @@ dalla tastiera.
 - **Correzione in corsa**: se sbagli a premere aggiungi o togli secondi senza far ripartire il round
 - **Tre template**: solo timer; timer e parole; parole e risposte, dove la risposta si rivela al tuo comando
 - **Giochi e round**: i round stanno dentro i giochi, si riordinano, si duplicano
-- **Un colore per squadra**, che tinge grafica, targhetta e barra del tempo
-- **Tutto personalizzabile**: colori, loghi, carattere, dimensioni, posizioni
-- **Suono di fine round** e schermata di chiusura, diversi per ogni gioco
+- **Un colore per squadra**, che tinge grafica, targhetta e barra del tempo; oppure round senza squadra, con i colori del tema
+- **Temi pronti** da cui partire, poi tutto personalizzabile: colori, immagine di sfondo, loghi, carattere, transizioni tra le parole, posizione di timer e nome della squadra
+- **Un aspetto diverso per ogni gioco**, se ne hai più di uno
+- **Torna indietro**: ogni impostazione dell'aspetto si riporta all'ultimo salvataggio con un clic
+- **Suono di fine round** e schermata di chiusura, diversi per ogni gioco: dodici suoni pronti, tra cui buzzer e ding da quiz televisivo, più quelli che carichi tu
 - **Italiano e inglese**
 - **Funziona offline**: nessuna connessione, nessun account, nessun dato raccolto
 
@@ -43,7 +45,9 @@ scarica uno nuovo da mettere al posto del vecchio.
 ## Aggiornamenti
 
 Una copia scaricata resta com'è. Quando esce una versione nuova, aprila dal
-sito e premi **Riprendi da un file**: la tua configurazione si trasferisce.
+sito, apri il menu **Altro** e premi **Riprendi da un file**: la tua
+configurazione si trasferisce. Le funzioni arrivate dopo partono spente, il
+resto resta com'era.
 
 ## Sviluppo
 
@@ -88,8 +92,12 @@ other. No account, no server, no network, nothing collected.
 
 Large hand-driven countdown, live clock correction that does not restart the
 round, three round templates (timer only; timer and words; words and answers),
-rounds grouped into games, a colour per team, and a fully customisable theme
-with your own logos and typeface. Interface in Italian and English.
+rounds grouped into games, a colour per team (or none, keeping the theme
+colours). Start from a ready-made theme, then customise everything: colours,
+background image, logos, typeface, word transitions, a separate look per game,
+and a one-click reset of any setting to the last save. Twelve built-in end
+sounds, including TV-quiz buzzers and dings, plus your own. Interface in
+Italian and English.
 
 Press **Save** and your setup is written back into the HTML file itself, so
 that file becomes your program. See **[INSTRUCTIONS.md](INSTRUCTIONS.md)**.

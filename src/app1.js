@@ -58,7 +58,7 @@ function configBase(){
     },
     tappo:  {logo:LOGO_SAM, mostraLogo:true, scalaLogo:145, testo:"", scalaTesto:100},
     angolo: {logo:LOGO_SAM, mostra:false, scala:100, posizione:"alto-destra"},
-    vista:  {timerPosizione:"basso-destra", timerScala:100, sogliaGialla:10, sogliaRossa:5},
+    vista:  {targa:"centro", timerPosizione:"basso-destra", timerScala:100, sogliaGialla:10, sogliaRossa:5},
     suono:  {tipo:"campana", volume:60},
     finale: {schermo:"tappo"},
     tasti:  Object.fromEntries(FUNZIONI.map(f => [f[0], f[2]])),
@@ -361,6 +361,7 @@ function dipingi(){
     el.dataset.fase = fase;
     el.dataset.angolo = cfg.angolo.posizione;
     el.dataset.timer = cfg.vista.timerPosizione;
+    el.dataset.targa = cfg.vista.targa;
     el.classList.toggle("avviso", !!avviso);
     el.classList.toggle("allarme", !!allarme);
     el.classList.toggle("finito", !!finito);
@@ -387,12 +388,12 @@ function dipingi(){
     st.setProperty("--spaziatura", (t.font.spaziatura / 100) + "em");
     st.setProperty("--carattere", t.font.dati ? "Utente" : "TitoloBase");
 
-    if(fase === "tappo" && !(r && r.mostraFinale)){
+    if(!r || !r.colore || (fase === "tappo" && !r.mostraFinale)){
       const c = t.ondeColori;
       st.setProperty("--g1", c[0]); st.setProperty("--g2", c[1]);
       st.setProperty("--g3", c[2]); st.setProperty("--g4", c[3]);
       st.setProperty("--squadra", c[1]);
-    } else if(r){
+    } else {
       const c = r.colore;
       st.setProperty("--squadra", c);
       st.setProperty("--g1", mescola(c, t.testo, .30));
